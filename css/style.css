@@ -43,6 +43,10 @@ button:hover {
   background-color: #6ABE30;
 }
 
+.selected:hover {
+  background-color: #51971e;
+}
+
 button:active {
   background-color: #5c16c5;
 }
