@@ -51,6 +51,10 @@
         background-color: #6abe30;
       }
 
+      .selected:hover {
+        background-color: #51971e;
+      }
+
       button:active {
         background-color: #5c16c5;
       }
@@ -107,9 +111,6 @@
       }
 
       async function main() {
-        var scenes = [];
-        var message = "";
-
         async function delay(ms) {
           return new Promise((R) => setTimeout(R, ms));
         }
