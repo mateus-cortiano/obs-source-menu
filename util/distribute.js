@@ -28,7 +28,7 @@ fs.readFile("./index.html", (err, html) => {
         if (err) throw err;
         $('script')
           .append(`${main.toString()} </script>`);
-        fs.appendFile("./dist/index.html", $.html(), (err) => { if (err) throw err } )
+        fs.appendFile("./dist/index.html", $.html(), {flag: "w"}, (err, f) => { if (err) throw err } )
       })
 
     })
