@@ -2,9 +2,6 @@ import { OBSWebSocket } from "./obsws.js";
 
 
 async function main() {
-  
-  var scenes = [];
-  var message = "";
 
   async function delay(ms) { return new Promise(R => setTimeout(R, ms)); };
 
