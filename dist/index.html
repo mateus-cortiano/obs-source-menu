@@ -1,0 +1,174 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>scenes</title>
+    <style>
+      body {
+        background-color: #111;
+        font-family: "Inter", "Roobert", "Helvetica Neue", Helvetica, Arial,
+          sans-serif;
+      }
+
+      *:focus {
+        outline: 0;
+      }
+
+      #button-container {
+        display: flex;
+      }
+
+      button {
+        flex-grow: 0 !important;
+        align-items: center !important;
+        display: inline-flex;
+        position: relative;
+        -webkit-box-align: center;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        white-space: nowrap;
+        user-select: none;
+        font-weight: 600;
+        border-radius: 0.4rem;
+        border-color: #111;
+        font-size: 1rem;
+        height: 3rem;
+        background-color: #9147ff;
+        color: #fff;
+        width: 100%;
+        -webkit-user-select: none;
+        -moz-box-align: center;
+      }
+
+      button:hover {
+        background-color: #772ce8;
+      }
+
+      .selected {
+        background-color: #6abe30;
+      }
+
+      button:active {
+        background-color: #5c16c5;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="btn-container"></div>
+
+    <script>
+      class OBSWebSocket extends WebSocket {
+        constructor(url, password) {
+          super(url || "ws://localhost:4444");
+          this.__uuid = 0;
+          this.__connected = false;
+          this.__password = password || "";
+          this.__message = {};
+          this.addEventListener("message", this.handle);
+          super.onopen = this.auth;
+        }
+        get _nextid() {
+          this.__uuid++;
+          return this.__uuid.toString();
+        }
+        async _delay(ms) {
+          return new Promise((resolve) => setTimeout(resolve, ms));
+        }
+        get connected() {
+          return this.__connected;
+        }
+        get message() {
+          return this.__message;
+        }
+        handle(msg) {
+          this.__message = JSON.parse(msg.data);
+        }
+        async auth() {
+          let res = await this.call("GetAuthRequired");
+          if (res["authRequired"]) {
+          }
+          this.__connected = true;
+        }
+        async send(request, payload) {
+          let R = payload || {};
+          R["message-id"] = this._nextid;
+          R["request-type"] = request;
+          super.send(JSON.stringify(R));
+          return R["message-id"];
+        }
+        async call(request, payload) {
+          let id = await this.send(request, payload || {});
+          while (this.__message["message-id"] !== id) await this._delay(1000);
+          return this.__message;
+        }
+      }
+
+      async function main() {
+        var scenes = [];
+        var message = "";
+
+        async function delay(ms) {
+          return new Promise((R) => setTimeout(R, ms));
+        }
+
+        async function getSceneList() {
+          let Names = [];
+          let R = await ws.call("GetSceneList");
+          R["scenes"].forEach((E) => {
+            if (!E["name"].startsWith(".")) Names.push(E["name"]);
+          });
+          let Active = Names.indexOf(R["current-scene"]);
+          return { scenes: Names, active: Active };
+        }
+
+        async function updateButtons() {
+          let R = await getSceneList();
+          appendButtons(R["scenes"], R["active"]);
+        }
+
+        async function setup() {
+          await updateButtons();
+          ws.addEventListener("message", handleEvent);
+        }
+
+        async function handleEvent(event) {
+          let R = JSON.parse(event.data);
+          switch (R["update-type"]) {
+            case "SwitchScenes":
+              await updateButtons();
+          }
+        }
+
+        async function switchToScene(event) {
+          let el = document.getElementsByClassName("selected");
+          el[0].className = "";
+          event.srcElement.className = "selected";
+          await ws.send("SetCurrentScene", {
+            "scene-name": event.srcElement.textContent,
+          });
+        }
+
+        function appendButtons(names, active) {
+          let buttonDiv = document.getElementById("btn-container");
+          buttonDiv.innerHTML = "";
+          names.forEach((element, i) => {
+            let el = document.createElement("button");
+            el.textContent = element;
+            if (i == active) el.className = "selected";
+            el.addEventListener("click", switchToScene);
+            buttonDiv.appendChild(el);
+          });
+        }
+
+        var ws = new OBSWebSocket();
+        while (!ws.connected) await delay(1000);
+        setup();
+      }
+
+      main();
+    </script>
+  </body>
+</html>
