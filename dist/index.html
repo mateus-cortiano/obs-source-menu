@@ -118,7 +118,12 @@
         }
         async call(request, payload) {
           let id = await this.send(request, payload || {});
-          while (this.__message["message-id"] !== id) await this._delay(1000);
+          let backoff = 50;
+          while (this.__message["message-id"] !== id) {
+            await this._delay((backoff *= 2));
+            if (backoff > 5000)
+              return Promise.reject("Response timeout expired");
+          }
           return this.__message;
         }
       }
@@ -143,12 +148,7 @@
           appendButtons(R["scenes"], R["active"]);
         }
 
-        async function setup() {
-          await updateButtons();
-          ws.addEventListener("message", handleEvent);
-        }
-
-        async function handleEvent(event) {
+        async function messageHandler(event) {
           let R = JSON.parse(event.data);
           switch (R["update-type"]) {
             case "SwitchScenes":
@@ -177,9 +177,19 @@
           });
         }
 
-        var ws = new OBSWebSocket();
-        while (!ws.connected) await delay(1000);
-        setup();
+        try {
+          var ws = new OBSWebSocket();
+        } catch (E) {
+          console.error(E);
+        } finally {
+          for (let backoff = 50; !ws.connected; backoff *= 2) {
+            await delay((backoff *= 2));
+            if (backoff > 5000)
+              return Promise.reject("Connection timeout expired");
+          }
+          ws.addEventListener("message", messageHandler);
+          await updateButtons();
+        }
       }
 
       main();
