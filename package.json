@@ -2,5 +2,9 @@
   "dependencies": {
     "cheerio": "*",
     "jquery": "^3.6.0"
+  },
+  "devDependencies": {
+    "@types/cheerio": "^0.22.28",
+    "@types/jquery": "^3.5.5"
   }
 }
