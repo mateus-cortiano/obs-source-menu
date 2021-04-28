@@ -66,7 +66,11 @@ export class OBSWebSocket extends WebSocket {
 
   async call(request:string, payload?: any): Promise<any> {
     let id = await this.send(request, payload || {});
-    while (this.__message["message-id"] !== id) await this._delay(1000);
+    let backoff = 50;
+    while (this.__message["message-id"] !== id) {
+      await this._delay(backoff *= 2);
+      if (backoff > 5000) return Promise.reject("Response timeout expired");
+    }
     return this.__message;
   }
 }

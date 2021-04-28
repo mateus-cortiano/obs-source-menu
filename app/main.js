@@ -21,12 +21,7 @@ async function main() {
     appendButtons(R["scenes"], R["active"]);
   }
 
-  async function setup() {
-    await updateButtons();
-    ws.addEventListener('message', handleEvent)
-  }
-
-  async function handleEvent(event) {
+  async function messageHandler(event) {
     let R = JSON.parse(event.data);
     switch(R['update-type']) {
       case "SwitchScenes":
@@ -53,9 +48,20 @@ async function main() {
     })
   }
 
-  var ws = new OBSWebSocket();
-  while (!ws.connected) await delay(1000);
-  setup();
+  try {
+    var ws = new OBSWebSocket();
+  }
+  catch (E) {
+    console.error(E);
+  }
+  finally {
+    for (let backoff = 50; !ws.connected; backoff *= 2) {
+      await delay(backoff *= 2);
+      if (backoff > 5000) return Promise.reject("Connection timeout expired");
+    }
+    ws.addEventListener('message', messageHandler);
+    await updateButtons();
+  }
 }
 
-main();
+main()
