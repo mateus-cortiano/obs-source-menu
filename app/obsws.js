@@ -1,4 +1,6 @@
-export class OBSWebSocket extends WebSocket {
+var SHA256 = new Hashes.SHA256;
+
+class OBSWebSocket extends WebSocket {
     constructor(url, password) {
         super(url || "ws://localhost:4444");
         this.__uuid = 0;
@@ -15,6 +17,11 @@ export class OBSWebSocket extends WebSocket {
     async _delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
+    hash(salt, challenge, password) {
+        const secret = SHA256.b64(password + salt) // .create()
+        const auth_response = SHA256.b64(secret + challenge) //.create()
+        return auth_response;
+    }
     get connected() { return this.__connected; }
     get message() { return this.__message; }
     handle(msg) {
@@ -23,6 +30,7 @@ export class OBSWebSocket extends WebSocket {
     async auth() {
         let res = await this.call("GetAuthRequired");
         if (res["authRequired"]) {
+            this.call("Authenticate", {auth: this.hash(res["salt"], res["challenge"], this.__password)})
         }
         this.__connected = true;
     }
@@ -35,11 +43,10 @@ export class OBSWebSocket extends WebSocket {
     }
     async call(request, payload) {
         let id = await this.send(request, payload || {});
-        let backoff = 50;
-        while (this.__message["message-id"] !== id) {
-            await this._delay(backoff *= 2);
+        for (let backoff = 50; this.__message["message-id"] !== id; backoff *= 2) {
+            await this._delay(backoff);
             if (backoff > 5000)
-                return Promise.reject("Response timeout expired");
+                return Promise.reject(new Error("Response timeout expired"));
         }
         return this.__message;
     }

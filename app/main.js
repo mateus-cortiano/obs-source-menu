@@ -1,32 +1,36 @@
-import { OBSWebSocket } from "./obsws.js";
+
+const host = document.getElementById('host');
+const pass = document.getElementById('pass');
+const submitButton = document.getElementById('submit-btn');
+
+submitButton.addEventListener('click', async (e) => {
+  let El = document.getElementById('auth');
+  El.className = "fade-out-image";
+  await new Promise(R => setTimeout(R, 900))
+  El.remove();
+  El = document.getElementById('btn-container');
+  main(host.value, pass.value)
+})
 
 
-async function main() {
+async function main(host="", pass="") {
 
   async function delay(ms) { return new Promise(R => setTimeout(R, ms)); };
 
   async function getSceneList() {
-    let Names = [];
-    let R = await ws.call("GetSceneList");
-    R['scenes'].forEach(E => {
-      if (!E['name'].startsWith('.'))
-      Names.push(E['name']);
+    let scene_names = []
+    let res = await ws.call("GetSceneList");
+    res['scenes'].forEach((el, i, arr) => {
+      if (!el['name'].startsWith('.'))
+        scene_names.push(el['name']);
     });
-    let Active = Names.indexOf(R['current-scene']);
-    return {"scenes": Names, "active": Active};
+    let i_active = scene_names.indexOf(res['current-scene']);
+    return {"scenes": scene_names, "active": i_active};
   }
 
   async function updateButtons() {
-    let R = await getSceneList();
-    appendButtons(R["scenes"], R["active"]);
-  }
-
-  async function messageHandler(event) {
-    let R = JSON.parse(event.data);
-    switch(R['update-type']) {
-      case "SwitchScenes":
-        await updateButtons(); 
-    }
+    let res = await getSceneList();
+    appendButtons(res["scenes"], res["active"]);
   }
 
   async function switchToScene(event) {
@@ -48,8 +52,17 @@ async function main() {
     })
   }
 
+  async function messageHandler(event) {
+    let R = JSON.parse(event.data);
+    switch(R['update-type']) {
+      case "SceneCollectionChanged":
+      case "SwitchScenes":
+        await updateButtons().catch(e => console.error(e)); 
+    }
+  }
+
   try {
-    var ws = new OBSWebSocket();
+    var ws = new OBSWebSocket(host, pass);
   }
   catch (E) {
     console.error(E);
@@ -57,11 +70,11 @@ async function main() {
   finally {
     for (let backoff = 50; !ws.connected; backoff *= 2) {
       await delay(backoff *= 2);
-      if (backoff > 5000) return Promise.reject("Connection timeout expired");
+      if (backoff > 5000) return Promise.reject(new Error("Connection timeout expired"));
     }
     ws.addEventListener('message', messageHandler);
-    await updateButtons();
+    let el = document.getElementById('btn-container');
+    el.className = "fade-in-image";
+    await updateButtons().catch(e => console.error(e));
   }
 }
-
-main()
