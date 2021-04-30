@@ -1,4 +1,13 @@
 'use strict';
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 import { obsEvents } from './util/types.js';
 import { backoff_timer, hasher } from './util/funcs.js';
 class OBSWebSocket extends WebSocket {
@@ -25,38 +34,49 @@ class OBSWebSocket extends WebSocket {
         delete this.__buffer[Number(index)];
         return message;
     }
-    async send(request, payload) {
-        let message = payload || {};
-        message['message-id'] = this.next_uuid();
-        message['request-type'] = request;
-        super.send(JSON.stringify(message));
-        if (this.LOG_IO)
-            console.log("<", message);
-        return message['message-id'];
+    send(request, payload) {
+        const _super = Object.create(null, {
+            send: { get: () => super.send }
+        });
+        return __awaiter(this, void 0, void 0, function* () {
+            let message = payload || {};
+            message['message-id'] = this.next_uuid();
+            message['request-type'] = request;
+            _super.send.call(this, JSON.stringify(message));
+            if (this.LOG_IO)
+                console.log("<", message);
+            return message['message-id'];
+        });
     }
-    async call(request, payload) {
-        let message_id = await this.send(request, payload);
-        await backoff_timer(() => { return Boolean(this.get_buffer(message_id)); });
-        return this.pop_buffer(message_id);
+    call(request, payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let message_id = yield this.send(request, payload);
+            yield backoff_timer(() => { return Boolean(this.get_buffer(message_id)); });
+            return this.pop_buffer(message_id);
+        });
     }
-    async message_handler(event) {
-        let message = JSON.parse(event.data);
-        let update = message['update-type'];
-        this.add_to_buffer(message['message-id'], message);
-        if (this.isevent(update) && this.__callbacks.has(update))
-            this.emit_event(update);
-        if (this.LOG_IO)
-            console.log(">", message);
+    message_handler(event) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let message = JSON.parse(event.data);
+            let update = message['update-type'];
+            this.add_to_buffer(message['message-id'], message);
+            if (this.isevent(update) && this.__callbacks.has(update))
+                this.emit_event(update);
+            if (this.LOG_IO)
+                console.log(">", message);
+        });
     }
-    async connection_handler() {
-        let response = await this.call('GetAuthRequired');
-        if (response.authRequired)
-            response = await this.call('Authenticate', {
-                auth: hasher(this.password, response.salt, response.challenge)
-            });
-        if (response.error)
-            throw response.error;
-        this.connected = true;
+    connection_handler() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let response = yield this.call('GetAuthRequired');
+            if (response.authRequired)
+                response = yield this.call('Authenticate', {
+                    auth: hasher(this.password, response.salt, response.challenge)
+                });
+            if (response.error)
+                throw response.error;
+            this.connected = true;
+        });
     }
     add_event_listener(event, callback) {
         if (!this.__callbacks.has(event))
@@ -66,19 +86,23 @@ class OBSWebSocket extends WebSocket {
     emit_event(event) {
         this.__callbacks.get(event).forEach(el => el());
     }
-    async get_scene_list(exclude = '.') {
-        let active;
-        let scenes = [];
-        let response = await this.call('GetSceneList');
-        response.scenes.forEach((el) => {
-            if (!el['name'].startsWith(exclude))
-                scenes.push(el['name']);
+    get_scene_list(exclude = '.') {
+        return __awaiter(this, void 0, void 0, function* () {
+            let active;
+            let scenes = [];
+            let response = yield this.call('GetSceneList');
+            response.scenes.forEach((el) => {
+                if (!el['name'].startsWith(exclude))
+                    scenes.push(el['name']);
+            });
+            active = scenes.indexOf(response['current-scene']);
+            return { 'scenes': scenes, 'active': active };
         });
-        active = scenes.indexOf(response['current-scene']);
-        return { 'scenes': scenes, 'active': active };
     }
-    async switch_to_scene(scene) {
-        await this.call('SetCurrentScene', { 'scene-name': scene });
+    switch_to_scene(scene) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.call('SetCurrentScene', { 'scene-name': scene });
+        });
     }
 }
 export default OBSWebSocket;

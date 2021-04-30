@@ -1,3 +1,12 @@
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 import OBSWebSocket from "./obsws.js";
 import { backoff_timer, wait_for } from "./util/funcs.js";
 const doc = document;
@@ -18,36 +27,40 @@ function returnElement(attributes) {
     el.textContent = attributes["textContent"];
     return el;
 }
-async function connect() {
-    authDiv.className = "fade-out-mid";
-    let host = authElements["host"].value || "ws://localhost:4444";
-    let pass = authElements["pass"].value;
-    var ws = new OBSWebSocket(host, pass);
-    await backoff_timer(() => { return ws.isconnected; });
-    if (ws.isconnected) {
-        authDiv.className = "fade-out-end";
-        await wait_for(900);
-        authDiv.remove();
-        const updateButtons = async function () {
-            let res = await ws.get_scene_list();
-            sceneListDiv.innerHTML = "";
-            res.scenes.forEach((element, i) => {
-                let el = document.createElement("button");
-                el.textContent = element;
-                if (i == res["active"])
-                    el.className = "selected";
-                el.addEventListener("click", () => {
-                    sceneListDiv.getElementsByClassName("selected")[0].className = "";
-                    el.className = "selected";
-                    ws.switch_to_scene(el.textContent);
+function connect() {
+    return __awaiter(this, void 0, void 0, function* () {
+        authDiv.className = "fade-out-mid";
+        let host = authElements["host"].value || "ws://localhost:4444";
+        let pass = authElements["pass"].value;
+        var ws = new OBSWebSocket(host, pass);
+        yield backoff_timer(() => { return ws.isconnected; });
+        if (ws.isconnected) {
+            authDiv.className = "fade-out-end";
+            yield wait_for(900);
+            authDiv.remove();
+            const updateButtons = function () {
+                return __awaiter(this, void 0, void 0, function* () {
+                    let res = yield ws.get_scene_list();
+                    sceneListDiv.innerHTML = "";
+                    res.scenes.forEach((element, i) => {
+                        let el = document.createElement("button");
+                        el.textContent = element;
+                        if (i == res["active"])
+                            el.className = "selected";
+                        el.addEventListener("click", () => {
+                            sceneListDiv.getElementsByClassName("selected")[0].className = "";
+                            el.className = "selected";
+                            ws.switch_to_scene(el.textContent);
+                        });
+                        sceneListDiv.appendChild(el);
+                    });
                 });
-                sceneListDiv.appendChild(el);
-            });
-        };
-        await updateButtons();
-        ws.add_event_listener("SwitchScenes", async () => await updateButtons());
-        sceneListDiv.className = "fade-in-image";
-    }
+            };
+            yield updateButtons();
+            ws.add_event_listener("SwitchScenes", () => __awaiter(this, void 0, void 0, function* () { return yield updateButtons(); }));
+            sceneListDiv.className = "fade-in-image";
+        }
+    });
 }
 function main() {
     const authForm = [
