@@ -14,7 +14,7 @@ function keyEventHandler(ev: KeyboardEvent): void {
 }
 
 function returnElement(attributes: { [key: string]: string }): any {
-  let el = document.createElement(attributes["tag"]);
+  let el = doc.createElement(attributes["tag"]);
   for (const attr in attributes) el.setAttribute(attr, attributes[attr]);
   el.textContent = attributes["textContent"];
   return el;
@@ -40,7 +40,7 @@ async function connect(): Promise<any> {
       
       sceneListDiv.innerHTML = "";
       response['scenes'].forEach((element: string, i: number) => {
-        let el = document.createElement("button");
+        let el = doc.createElement("button");
         el.textContent = element;
         if (i == response["active"]) el.className = "selected";
         el.addEventListener("click", () => {
