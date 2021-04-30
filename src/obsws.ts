@@ -1,135 +1,117 @@
-const ENABLE_LOGGING: boolean = false;
-
-var SHA256 = new Hashes.SHA256();
+'use strict';
+import {OBSMessage, OBSEvent, obsEvents} from './util/types.js';
+import {backoff_timer, hasher} from './util/funcs.js';
 
 class OBSWebSocket extends WebSocket {
-  /* properties, getters and setters */
-  protected __connected: boolean;
-  protected __uuid: number;
   protected __password: string;
-  protected __message: Map<any, any>;
-  protected __callbacks: Map<string, Array<Function>>;
+  protected __connected: Boolean;
+  protected __uuid: number;
+  protected __buffer: { [index: number]: OBSMessage };
+  protected __callbacks: Map <OBSEvent, Function[]>;
+  protected LOG_IO: boolean;
 
-  get connected(): boolean {
-    return this.__connected;
+  get isconnected(): Boolean { return this.__connected }
+  protected get password(): string { return this.__password }
+  protected set connected(value: Boolean) { this.__connected = value }
+  protected isevent(event: any): event is OBSEvent { return Boolean(event in obsEvents) }
+  protected next_uuid(): string { return String(this.__uuid++) }
+  protected get_buffer(index: number | string): OBSMessage | Boolean { return this.__buffer[Number(index)] }
+  protected add_to_buffer(index: number | string, value: OBSMessage): void {this.__buffer[Number(index)] = value }
+  protected pop_buffer(index: number | string): OBSMessage { 
+    let message: OBSMessage = this.__buffer[Number(index)];
+    delete this.__buffer[Number(index)];
+    return message;
   }
 
-  set onswitchscene(callback: Function) {
-    this.__callbacks.get("switch-scene").push(callback);
-  }
-
-  protected get _nextid(): string {
-    this.__uuid++;
-    return this.__uuid.toString();
-  }
-
-  protected hash(salt: string, challenge: string, password: string) {
-    const secret = SHA256.b64(password + salt);
-    const auth_response = SHA256.b64(secret + challenge);
-    return auth_response;
-  }
-
-  async waitFor(ms: number): Promise<any> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  async retry(
-    condition: (args?: any) => boolean,
-    maxRetries: number = 6
-  ): Promise<any> {
-    async function backoff(retries: number = 0): Promise<any> {
-      if (retries)
-        await new Promise((resolve) => setTimeout(resolve, 2 ** retries * 100));
-      if (condition()) return Promise.resolve();
-      if (retries > maxRetries) return Promise.reject("Max retries reached");
-      return backoff(retries + 1);
-    }
-    return backoff();
-  }
-
-  constructor(url?: string, password?: string) {
-    super(url || "ws://localhost:4444");
-
-    this.__uuid = 0;
+  constructor(
+    url: string = 'ws://localhost:4444',
+    password: string = '',
+    logging: boolean = true
+  ) {
+    super(url);
+    this.__uuid = 1;
+    this.__buffer = {};
+    this.__password = password;
     this.__connected = false;
-    this.__password = password || "";
-    this.__message = new Map<Number, object>();
-    this.__callbacks = new Map<string, Function[]>();
-    this.__callbacks.set("switch-scene", Array<Function>())!;
-    this.addEventListener("message", this.messageHandler);
+    this.__callbacks = new Map <OBSEvent, Function[]>();
+    this.LOG_IO = logging;
 
-    super.onopen = this.auth;
+    super.onopen = this.connection_handler;
+    super.onmessage = this.message_handler;
   }
 
-  /* base functions and handlers */
-  async send(request: string, payload?: any): Promise<string> {
-    let R = payload || {};
-    R["message-id"] = this._nextid;
-    R["request-type"] = request;
-    super.send(JSON.stringify(R));
-    if (ENABLE_LOGGING) console.log(R);
-    return R["message-id"];
+  async send(request: string, payload?: OBSMessage): Promise<string> {
+    let message = payload || {};
+    message['message-id'] = this.next_uuid();
+    message['request-type'] = request;
+
+    super.send(JSON.stringify(message));
+
+    if (this.LOG_IO) console.log("<", message);
+
+    return message['message-id'];
   }
 
-  async call(request: string, payload?: any): Promise<any> {
-    let id = await this.send(request, payload || {});
-    await this.retry(() => {
-      return this.__message.get(id);
-    });
-    let re = this.__message.get(id);
-    this.__message.delete(id);
-    return re;
+  async call(request: string, payload?: OBSMessage): Promise<OBSMessage> {
+    let message_id = await this.send(request, payload);
+    await backoff_timer(() => {return Boolean(this.get_buffer(message_id))});
+
+    return this.pop_buffer(message_id);
   }
 
-  messageHandler(msg: MessageEvent<any>): void {
-    let parsed = JSON.parse(msg.data);
-    this.__message.set(parsed["message-id"], parsed);
-    switch (parsed["update-type"]) {
-      case "SwitchScenes":
-        this.emit("switch-scene");
-        break;
-    }
-    if (ENABLE_LOGGING) console.log(parsed);
+  async message_handler(event: MessageEvent): Promise<void> {
+    let message: OBSMessage = JSON.parse(event.data);
+    let update: string = message['update-type'];
+
+    this.add_to_buffer(message['message-id'], message);
+
+    if (this.isevent(update) && this.__callbacks.has(update))
+      this.emit_event(update);
+
+    if (this.LOG_IO) console.log(">", message);
   }
 
-  /* implemented functions */
-  async auth() {
-    let res = await this.call("GetAuthRequired");
+  async connection_handler(): Promise<void> {
+    let response:OBSMessage = await this.call('GetAuthRequired');
 
-    if (res["authRequired"]) {
-      res = await this.call("Authenticate", {
-        auth: this.hash(res["salt"], res["challenge"], this.__password),
-      });
+    if (response.authRequired)
+      response = await this.call('Authenticate', {
+        auth: hasher(this.password, response.salt, response.challenge)});
+    if (response.error)
+      throw response.error;
 
-      switch (res["error"]) {
-        case undefined:
-          break;
-        case "Authentication Failed.":
-          throw Error("Authentication Failed");
-        default:
-          throw Error("Authentication Error");
-      }
-    }
-
-    this.__connected = true;
+    this.connected = true;
+  }
+  
+  add_event_listener(event: OBSEvent, callback: Function): void {
+    if (!this.__callbacks.has(event))
+      this.__callbacks.set(event, new Array());
+  
+    this.__callbacks.get(event).push(callback);
   }
 
-  async getSceneList(exclude: string = "."): Promise<object> {
-    let scenes: Array<string> = [];
-    let res = await this.call("GetSceneList");
-    res["scenes"].forEach((el: any) => {
-      if (!el["name"].startsWith(exclude)) scenes.push(el["name"]);
-    });
-    let i_active = scenes.indexOf(res["current-scene"]);
-    return { scenes: scenes, active: i_active };
+  emit_event(event: OBSEvent): void {
+    this.__callbacks.get(event).forEach(el => el());
+  }
+  
+  async get_scene_list(exclude: string='.'): Promise<OBSMessage> {
+    let active: number;
+    let scenes: String[] = [];
+    let response = await this.call('GetSceneList');
+
+    response.scenes.forEach((el: any[]) => {
+      if (!el['name'].startsWith(exclude))
+        scenes.push(el['name']);
+    })
+    active = scenes.indexOf(response['current-scene']);
+
+    return {'scenes': scenes, 'active': active};
   }
 
-  async switchToScene(scene: string) {
-    await this.call("SetCurrentScene", { "scene-name": scene });
+  async switch_to_scene(scene: string): Promise<void> {
+    await this.call('SetCurrentScene', {'scene-name': scene});
   }
 
-  /* emit events */
-  protected emit(event: string) {
-    this.__callbacks.get(event).forEach((el: Function) => el());
-  }
 }
+
+export default OBSWebSocket;

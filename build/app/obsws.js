@@ -1,108 +1,84 @@
-"use strict";
-const ENABLE_LOGGING = false;
-var SHA256 = new Hashes.SHA256();
+'use strict';
+import { obsEvents } from './util/types.js';
+import { backoff_timer, hasher } from './util/funcs.js';
 class OBSWebSocket extends WebSocket {
-    constructor(url, password) {
-        super(url || "ws://localhost:4444");
-        this.__uuid = 0;
+    constructor(url = 'ws://localhost:4444', password = '', logging = true) {
+        super(url);
+        this.__uuid = 1;
+        this.__buffer = {};
+        this.__password = password;
         this.__connected = false;
-        this.__password = password || "";
-        this.__message = new Map();
         this.__callbacks = new Map();
-        this.__callbacks.set("switch-scene", Array());
-        this.addEventListener("message", this.messageHandler);
-        super.onopen = this.auth;
+        this.LOG_IO = logging;
+        super.onopen = this.connection_handler;
+        super.onmessage = this.message_handler;
     }
-    get connected() {
-        return this.__connected;
-    }
-    set onswitchscene(callback) {
-        this.__callbacks.get("switch-scene").push(callback);
-    }
-    get _nextid() {
-        this.__uuid++;
-        return this.__uuid.toString();
-    }
-    hash(salt, challenge, password) {
-        const secret = SHA256.b64(password + salt);
-        const auth_response = SHA256.b64(secret + challenge);
-        return auth_response;
-    }
-    async waitFor(ms) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-    async retry(condition, maxRetries = 6) {
-        async function backoff(retries = 0) {
-            if (retries)
-                await new Promise((resolve) => setTimeout(resolve, 2 ** retries * 100));
-            if (condition())
-                return Promise.resolve();
-            if (retries > maxRetries)
-                return Promise.reject("Max retries reached");
-            return backoff(retries + 1);
-        }
-        return backoff();
+    get isconnected() { return this.__connected; }
+    get password() { return this.__password; }
+    set connected(value) { this.__connected = value; }
+    isevent(event) { return Boolean(event in obsEvents); }
+    next_uuid() { return String(this.__uuid++); }
+    get_buffer(index) { return this.__buffer[Number(index)]; }
+    add_to_buffer(index, value) { this.__buffer[Number(index)] = value; }
+    pop_buffer(index) {
+        let message = this.__buffer[Number(index)];
+        delete this.__buffer[Number(index)];
+        return message;
     }
     async send(request, payload) {
-        let R = payload || {};
-        R["message-id"] = this._nextid;
-        R["request-type"] = request;
-        super.send(JSON.stringify(R));
-        if (ENABLE_LOGGING)
-            console.log(R);
-        return R["message-id"];
+        let message = payload || {};
+        message['message-id'] = this.next_uuid();
+        message['request-type'] = request;
+        super.send(JSON.stringify(message));
+        if (this.LOG_IO)
+            console.log("<", message);
+        return message['message-id'];
     }
     async call(request, payload) {
-        let id = await this.send(request, payload || {});
-        await this.retry(() => {
-            return this.__message.get(id);
-        });
-        let re = this.__message.get(id);
-        this.__message.delete(id);
-        return re;
+        let message_id = await this.send(request, payload);
+        await backoff_timer(() => { return Boolean(this.get_buffer(message_id)); });
+        return this.pop_buffer(message_id);
     }
-    messageHandler(msg) {
-        let parsed = JSON.parse(msg.data);
-        this.__message.set(parsed["message-id"], parsed);
-        switch (parsed["update-type"]) {
-            case "SwitchScenes":
-                this.emit("switch-scene");
-                break;
-        }
-        if (ENABLE_LOGGING)
-            console.log(parsed);
+    async message_handler(event) {
+        let message = JSON.parse(event.data);
+        let update = message['update-type'];
+        this.add_to_buffer(message['message-id'], message);
+        if (this.isevent(update) && this.__callbacks.has(update))
+            this.emit_event(update);
+        if (this.LOG_IO)
+            console.log(">", message);
     }
-    async auth() {
-        let res = await this.call("GetAuthRequired");
-        if (res["authRequired"]) {
-            res = await this.call("Authenticate", {
-                auth: this.hash(res["salt"], res["challenge"], this.__password),
+    async connection_handler() {
+        let response = await this.call('GetAuthRequired');
+        if (response.authRequired)
+            response = await this.call('Authenticate', {
+                auth: hasher(this.password, response.salt, response.challenge)
             });
-            switch (res["error"]) {
-                case undefined:
-                    break;
-                case "Authentication Failed.":
-                    throw Error("Authentication Failed");
-                default:
-                    throw Error("Authentication Error");
-            }
-        }
-        this.__connected = true;
+        if (response.error)
+            throw response.error;
+        this.connected = true;
     }
-    async getSceneList(exclude = ".") {
+    add_event_listener(event, callback) {
+        if (!this.__callbacks.has(event))
+            this.__callbacks.set(event, new Array());
+        this.__callbacks.get(event).push(callback);
+    }
+    emit_event(event) {
+        this.__callbacks.get(event).forEach(el => el());
+    }
+    async get_scene_list(exclude = '.') {
+        let active;
         let scenes = [];
-        let res = await this.call("GetSceneList");
-        res["scenes"].forEach((el) => {
-            if (!el["name"].startsWith(exclude))
-                scenes.push(el["name"]);
+        let response = await this.call('GetSceneList');
+        response.scenes.forEach((el) => {
+            if (!el['name'].startsWith(exclude))
+                scenes.push(el['name']);
         });
-        let i_active = scenes.indexOf(res["current-scene"]);
-        return { scenes: scenes, active: i_active };
+        active = scenes.indexOf(response['current-scene']);
+        return { 'scenes': scenes, 'active': active };
     }
-    async switchToScene(scene) {
-        await this.call("SetCurrentScene", { "scene-name": scene });
-    }
-    emit(event) {
-        this.__callbacks.get(event).forEach((el) => el());
+    async switch_to_scene(scene) {
+        await this.call('SetCurrentScene', { 'scene-name': scene });
     }
 }
+export default OBSWebSocket;

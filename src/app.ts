@@ -1,3 +1,6 @@
+import OBSWebSocket from "./obsws.js";
+import {backoff_timer, wait_for} from "./util/funcs.js"
+
 const doc: Document = document;
 const authDiv: HTMLElement = doc.getElementById("auth-div")!;
 const sceneListDiv: HTMLElement = doc.getElementById("scene-list")!;
@@ -5,57 +8,51 @@ const authElements: { [key: string]: any } = {};
 
 function keyEventHandler(ev: KeyboardEvent): void {
   switch (ev.key) {
-    case "Enter":
-      connect();
+    case "Enter": connect(); break;
   }
 }
 
 function returnElement(attributes: { [key: string]: string }): any {
   let el = document.createElement(attributes["tag"]);
-
   for (const attr in attributes) el.setAttribute(attr, attributes[attr]);
-
   el.textContent = attributes["textContent"];
-
   return el;
 }
 
 async function connect(): Promise<any> {
   authDiv.className = "fade-out-mid";
 
-  let host = authElements["host"].value;
+  let host = authElements["host"].value || "ws://localhost:4444";
   let pass = authElements["pass"].value;
 
   var ws = new OBSWebSocket(host, pass);
 
-  await ws.retry(() => {
-    return ws.connected;
-  });
+  await backoff_timer(() => { return ws.isconnected; });
 
-  if (ws.connected) {
+  if (ws.isconnected) {
     authDiv.className = "fade-out-end";
-    await ws.waitFor(900);
+    await wait_for(900);
     authDiv.remove();
 
     const updateButtons = async function () {
-      let res = await ws.getSceneList();
+      let res = await ws.get_scene_list();
       sceneListDiv.innerHTML = "";
 
-      res["scenes"].forEach((element, i) => {
+      res.scenes.forEach((element: string, i: number) => {
         let el = document.createElement("button");
         el.textContent = element;
         if (i == res["active"]) el.className = "selected";
         el.addEventListener("click", () => {
           sceneListDiv.getElementsByClassName("selected")[0].className = "";
           el.className = "selected";
-          ws.switchToScene(el.textContent);
+          ws.switch_to_scene(el.textContent);
         });
         sceneListDiv.appendChild(el);
       });
     };
 
     await updateButtons();
-    ws.onswitchscene = async () => await updateButtons();
+    ws.add_event_listener("SwitchScenes", async () => await updateButtons());
     sceneListDiv.className = "fade-in-image";
   }
 }
