@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { MessageBuffer } from './util/types.js';
 import { backoff_timer, hasher } from './util/funcs.js';
 class OBSWebSocket extends WebSocket {
-    constructor(url = 'ws://localhost:4444', password = '', logging = true) {
+    constructor(url = 'ws://localhost:4444', password = '', logging = false) {
         super(url);
         this.__uuid = 1;
         this.__connected = false;
@@ -42,7 +42,7 @@ class OBSWebSocket extends WebSocket {
     call(request, payload) {
         return __awaiter(this, void 0, void 0, function* () {
             let message_id = yield this.send(request, payload);
-            yield backoff_timer(() => { return Boolean(this.__buffer.has(message_id)); });
+            yield backoff_timer(() => { return this.__buffer.has(message_id); });
             return this.__buffer.pop(message_id);
         });
     }
@@ -51,7 +51,7 @@ class OBSWebSocket extends WebSocket {
             let message = JSON.parse(event.data);
             let update = message['update-type'];
             if (message['message-id'])
-                this.__buffer.add(message['message-id'], message);
+                this.__buffer.add(message);
             if (this.__callbacks.has(update))
                 this.emit_event(update);
             if (this.LOG_IO)
@@ -85,10 +85,9 @@ class OBSWebSocket extends WebSocket {
             let active;
             let scenes = [];
             let response = yield this.call('GetSceneList');
-            response['scenes'].forEach((el) => {
-                if (!el['name'].startsWith(exclude))
-                    scenes.push(el['name']);
-            });
+            for (let scene of response['scenes'])
+                if (!scene['name'].startsWith(exclude))
+                    scenes.push(scene['name']);
             active = scenes.indexOf(response['current-scene']);
             return { 'scenes': scenes, 'active': active };
         });

@@ -1,6 +1,6 @@
 export class MessageBuffer {
     has(index) { return Boolean(this[index]); }
-    add(index, value) { this[index] = value; }
+    add(value) { this[value["message-id"]] = value; }
     get(index) { return this[index]; }
     pop(index) {
         let message = this[index];

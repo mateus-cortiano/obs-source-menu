@@ -21,7 +21,7 @@ function keyEventHandler(ev) {
     }
 }
 function returnElement(attributes) {
-    let el = document.createElement(attributes["tag"]);
+    let el = doc.createElement(attributes["tag"]);
     for (const attr in attributes)
         el.setAttribute(attr, attributes[attr]);
     el.textContent = attributes["textContent"];
@@ -43,7 +43,7 @@ function connect() {
                     let response = yield ws.get_scene_list();
                     sceneListDiv.innerHTML = "";
                     response['scenes'].forEach((element, i) => {
-                        let el = document.createElement("button");
+                        let el = doc.createElement("button");
                         el.textContent = element;
                         if (i == response["active"])
                             el.className = "selected";
@@ -57,6 +57,7 @@ function connect() {
                 });
             };
             yield updateButtons();
+            ws.add_event_listener("TransitionBegin", () => __awaiter(this, void 0, void 0, function* () { return yield updateButtons(); }));
             ws.add_event_listener("SwitchScenes", () => __awaiter(this, void 0, void 0, function* () { return yield updateButtons(); }));
             sceneListDiv.className = "fade-in-image";
         }
