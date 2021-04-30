@@ -1,4 +1,6 @@
-declare const Hashes: any;
+// import {SHA256} from "jshashes";
+// declare const Hashes: any;
+const Hashes: any = require('jshashes');
 var SHA256 = new Hashes.SHA256();
 
 export async function backoff_timer(
@@ -8,9 +10,7 @@ export async function backoff_timer(
 ): Promise<any> {
   async function retry(retries: number = 0): Promise<any> {
     if (retries)
-      await new Promise((resolve) =>
-        setTimeout(resolve, 2 ** retries * base_time_multiplier)
-      );
+      await wait_for(2 ** retries * base_time_multiplier);
     if (condition()) return Promise.resolve();
     if (retries > max_retries) return Promise.reject("Max retries reached");
 

@@ -1,6 +1,6 @@
-import OBSWebSocket from "./obsws.js";
-import {OBSMessage} from "./util/types.js";
-import {backoff_timer, wait_for} from "./util/funcs.js"
+import {OBSWebSocket} from "./obsws";
+import {OBSMessage} from "./util/types";
+import {backoff_timer, wait_for} from "./util/funcs"
 
 const doc: Document = document;
 const authDiv: HTMLElement = doc.getElementById("auth-div")!;

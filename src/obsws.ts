@@ -1,8 +1,10 @@
 'use strict';
-import {OBSMessage, MessageBuffer, OBSEvent} from './util/types.js';
-import {backoff_timer, hasher} from './util/funcs.js';
+// const TYPES = require('./util/types');
+// const FUNCS = require('./util/funcs');
+import {OBSMessage, MessageBuffer, OBSEvent} from './util/types';
+import {backoff_timer, hasher} from './util/funcs';
 
-class OBSWebSocket extends WebSocket {
+export class OBSWebSocket extends WebSocket {
   protected __password: string;
   protected __connected: Boolean;
   protected __uuid: number;
@@ -78,11 +80,11 @@ class OBSWebSocket extends WebSocket {
   add_event_listener(event: OBSEvent, callback: ()=>any): void {
     if (!this.__callbacks.has(event))
       this.__callbacks.set(event, new Array());
-    this.__callbacks.get(event).push(callback);
+    this.__callbacks.get(event)!.push(callback);
   }
 
   async emit_event(event: OBSEvent): Promise<void> {
-    this.__callbacks.get(event).forEach(async(el) => await el());
+    this.__callbacks.get(event)!.forEach(async(el) => await el());
   }
 
   async get_scene_list(exclude: string='.'): Promise<OBSMessage> {
@@ -104,5 +106,3 @@ class OBSWebSocket extends WebSocket {
   }
 
 }
-
-export default OBSWebSocket;
