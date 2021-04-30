@@ -1,5 +1,3 @@
-// import {SHA256} from "jshashes";
-// declare const Hashes: any;
 const Hashes: any = require('jshashes');
 var SHA256 = new Hashes.SHA256();
 

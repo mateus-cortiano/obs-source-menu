@@ -1,6 +1,4 @@
 'use strict';
-// const TYPES = require('./util/types');
-// const FUNCS = require('./util/funcs');
 import {OBSMessage, MessageBuffer, OBSEvent} from './util/types';
 import {backoff_timer, hasher} from './util/funcs';
 
