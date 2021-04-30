@@ -23,11 +23,15 @@ export class MessageBuffer {
   [index: number]: OBSMessage;
 
   has(index: number | string): Boolean { return Boolean(this[index as number]); }
-  add(index: number | string, value: OBSMessage) { this[index as number] = value }
+  add(value: OBSMessage) { this[value["message-id"] as number] = value }
   get(index: number | string): OBSMessage { return this[index as number]; }
   pop(index: number | string): OBSMessage {
     let message: OBSMessage = this[index as number];
     delete this[index as number];
     return message;
   }
+}
+
+export interface CallbackMap extends Map<OBSEvent, Function[]> {
+
 }
