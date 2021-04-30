@@ -1,0 +1,31 @@
+{
+  "name": "obs-ts",
+  "version": "1.0.0",
+  "description": "asynchronous websocket wrapper for obs",
+  "main": "index.ts",
+  "scripts": {
+    "serve": "webpack-dev-server",
+    "build": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/mtxwrz/obsws-ts"
+  },
+  "keywords": [
+    "typescript",
+    "obs",
+    "websockets"
+  ],
+  "author": "mateus schwarz",
+  "license": "ISC",
+  "dependencies": {
+    "jshashes": "^1.0.8",
+    "ts-loader": "^9.1.1"
+  },
+  "devDependencies": {
+    "typescript": "^4.2.4",
+    "webpack": "^5.36.2",
+    "webpack-cli": "^4.6.0",
+    "webpack-dev-server": "^3.11.2"
+  }
+}

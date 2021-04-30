@@ -1,0 +1,22 @@
+{
+  /* in directory */
+  "include": ["./src/**/*", ],
+
+  /* exclude */
+  "exclude": ["node_modules", "build"],
+
+  "compilerOptions": {
+    /* out directory */
+    "outDir": "../build/app",
+    "moduleResolution": "Node",
+
+    /* options */
+    "strict": true,
+    "target": "ES6",
+    "removeComments": true,
+    "module": "ES6",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+  }
+}
