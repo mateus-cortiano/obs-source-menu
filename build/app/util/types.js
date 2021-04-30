@@ -1,5 +1,10 @@
-export var obsEvents;
-(function (obsEvents) {
-    obsEvents[obsEvents["SwitchScenes"] = 0] = "SwitchScenes";
-    obsEvents[obsEvents["TransitionBegin"] = 1] = "TransitionBegin";
-})(obsEvents || (obsEvents = {}));
+export class MessageBuffer {
+    has(index) { return Boolean(this[index]); }
+    add(index, value) { this[index] = value; }
+    get(index) { return this[index]; }
+    pop(index) {
+        let message = this[index];
+        delete this[index];
+        return message;
+    }
+}

@@ -8,15 +8,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { obsEvents } from './util/types.js';
+import { MessageBuffer } from './util/types.js';
 import { backoff_timer, hasher } from './util/funcs.js';
 class OBSWebSocket extends WebSocket {
     constructor(url = 'ws://localhost:4444', password = '', logging = true) {
         super(url);
         this.__uuid = 1;
-        this.__buffer = {};
-        this.__password = password;
         this.__connected = false;
+        this.__password = password;
+        this.__buffer = new MessageBuffer();
         this.__callbacks = new Map();
         this.LOG_IO = logging;
         super.onopen = this.connection_handler;
@@ -24,16 +24,7 @@ class OBSWebSocket extends WebSocket {
     }
     get isconnected() { return this.__connected; }
     get password() { return this.__password; }
-    set connected(value) { this.__connected = value; }
-    isevent(event) { return Boolean(event in obsEvents); }
     next_uuid() { return String(this.__uuid++); }
-    get_buffer(index) { return this.__buffer[Number(index)]; }
-    add_to_buffer(index, value) { this.__buffer[Number(index)] = value; }
-    pop_buffer(index) {
-        let message = this.__buffer[Number(index)];
-        delete this.__buffer[Number(index)];
-        return message;
-    }
     send(request, payload) {
         const _super = Object.create(null, {
             send: { get: () => super.send }
@@ -51,16 +42,17 @@ class OBSWebSocket extends WebSocket {
     call(request, payload) {
         return __awaiter(this, void 0, void 0, function* () {
             let message_id = yield this.send(request, payload);
-            yield backoff_timer(() => { return Boolean(this.get_buffer(message_id)); });
-            return this.pop_buffer(message_id);
+            yield backoff_timer(() => { return Boolean(this.__buffer.has(message_id)); });
+            return this.__buffer.pop(message_id);
         });
     }
     message_handler(event) {
         return __awaiter(this, void 0, void 0, function* () {
             let message = JSON.parse(event.data);
             let update = message['update-type'];
-            this.add_to_buffer(message['message-id'], message);
-            if (this.isevent(update) && this.__callbacks.has(update))
+            if (message['message-id'])
+                this.__buffer.add(message['message-id'], message);
+            if (this.__callbacks.has(update))
                 this.emit_event(update);
             if (this.LOG_IO)
                 console.log(">", message);
@@ -75,7 +67,7 @@ class OBSWebSocket extends WebSocket {
                 });
             if (response.error)
                 throw response.error;
-            this.connected = true;
+            this.__connected = true;
         });
     }
     add_event_listener(event, callback) {
@@ -84,14 +76,16 @@ class OBSWebSocket extends WebSocket {
         this.__callbacks.get(event).push(callback);
     }
     emit_event(event) {
-        this.__callbacks.get(event).forEach(el => el());
+        return __awaiter(this, void 0, void 0, function* () {
+            this.__callbacks.get(event).forEach((el) => __awaiter(this, void 0, void 0, function* () { return yield el(); }));
+        });
     }
     get_scene_list(exclude = '.') {
         return __awaiter(this, void 0, void 0, function* () {
             let active;
             let scenes = [];
             let response = yield this.call('GetSceneList');
-            response.scenes.forEach((el) => {
+            response['scenes'].forEach((el) => {
                 if (!el['name'].startsWith(exclude))
                     scenes.push(el['name']);
             });

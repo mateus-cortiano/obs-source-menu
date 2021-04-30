@@ -1,4 +1,5 @@
 import OBSWebSocket from "./obsws.js";
+import {OBSMessage} from "./util/types.js";
 import {backoff_timer, wait_for} from "./util/funcs.js"
 
 const doc: Document = document;
@@ -35,17 +36,17 @@ async function connect(): Promise<any> {
     authDiv.remove();
 
     const updateButtons = async function () {
-      let res = await ws.get_scene_list();
+      let response: OBSMessage = await ws.get_scene_list();
+      
       sceneListDiv.innerHTML = "";
-
-      res.scenes.forEach((element: string, i: number) => {
+      response['scenes'].forEach((element: string, i: number) => {
         let el = document.createElement("button");
         el.textContent = element;
-        if (i == res["active"]) el.className = "selected";
+        if (i == response["active"]) el.className = "selected";
         el.addEventListener("click", () => {
           sceneListDiv.getElementsByClassName("selected")[0].className = "";
           el.className = "selected";
-          ws.switch_to_scene(el.textContent);
+          ws.switch_to_scene(el.textContent as string);
         });
         sceneListDiv.appendChild(el);
       });

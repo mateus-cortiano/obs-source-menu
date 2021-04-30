@@ -40,12 +40,12 @@ function connect() {
             authDiv.remove();
             const updateButtons = function () {
                 return __awaiter(this, void 0, void 0, function* () {
-                    let res = yield ws.get_scene_list();
+                    let response = yield ws.get_scene_list();
                     sceneListDiv.innerHTML = "";
-                    res.scenes.forEach((element, i) => {
+                    response['scenes'].forEach((element, i) => {
                         let el = document.createElement("button");
                         el.textContent = element;
-                        if (i == res["active"])
+                        if (i == response["active"])
                             el.className = "selected";
                         el.addEventListener("click", () => {
                             sceneListDiv.getElementsByClassName("selected")[0].className = "";

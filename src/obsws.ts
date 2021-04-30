@@ -1,27 +1,18 @@
 'use strict';
-import {OBSMessage, OBSEvent, obsEvents} from './util/types.js';
+import {OBSMessage, MessageBuffer, OBSEvent} from './util/types.js';
 import {backoff_timer, hasher} from './util/funcs.js';
 
 class OBSWebSocket extends WebSocket {
   protected __password: string;
   protected __connected: Boolean;
   protected __uuid: number;
-  protected __buffer: { [index: number]: OBSMessage };
-  protected __callbacks: Map <OBSEvent, Function[]>;
+  protected __buffer: MessageBuffer;
+  protected __callbacks: Map <OBSEvent | undefined, Function[]>;
   protected LOG_IO: boolean;
 
   get isconnected(): Boolean { return this.__connected }
   protected get password(): string { return this.__password }
-  protected set connected(value: Boolean) { this.__connected = value }
-  protected isevent(event: any): event is OBSEvent { return Boolean(event in obsEvents) }
   protected next_uuid(): string { return String(this.__uuid++) }
-  protected get_buffer(index: number | string): OBSMessage | Boolean { return this.__buffer[Number(index)] }
-  protected add_to_buffer(index: number | string, value: OBSMessage): void {this.__buffer[Number(index)] = value }
-  protected pop_buffer(index: number | string): OBSMessage { 
-    let message: OBSMessage = this.__buffer[Number(index)];
-    delete this.__buffer[Number(index)];
-    return message;
-  }
 
   constructor(
     url: string = 'ws://localhost:4444',
@@ -29,10 +20,11 @@ class OBSWebSocket extends WebSocket {
     logging: boolean = true
   ) {
     super(url);
+    
     this.__uuid = 1;
-    this.__buffer = {};
-    this.__password = password;
     this.__connected = false;
+    this.__password = password;
+    this.__buffer = new MessageBuffer();
     this.__callbacks = new Map <OBSEvent, Function[]>();
     this.LOG_IO = logging;
 
@@ -54,44 +46,45 @@ class OBSWebSocket extends WebSocket {
 
   async call(request: string, payload?: OBSMessage): Promise<OBSMessage> {
     let message_id = await this.send(request, payload);
-    await backoff_timer(() => {return Boolean(this.get_buffer(message_id))});
+    await backoff_timer(() => {return Boolean(this.__buffer.has(message_id))});
 
-    return this.pop_buffer(message_id);
+    return this.__buffer.pop(message_id);
   }
 
   async message_handler(event: MessageEvent): Promise<void> {
     let message: OBSMessage = JSON.parse(event.data);
-    let update: string = message['update-type'];
+    let update = message['update-type'] as string;
 
-    this.add_to_buffer(message['message-id'], message);
+    if (message['message-id'])
+      this.__buffer.add(message['message-id'], message);
 
-    if (this.isevent(update) && this.__callbacks.has(update))
-      this.emit_event(update);
+    if (this.__callbacks.has(update as OBSEvent))
+      this.emit_event(update as OBSEvent);
 
     if (this.LOG_IO) console.log(">", message);
   }
 
   async connection_handler(): Promise<void> {
-    let response:OBSMessage = await this.call('GetAuthRequired');
+    let response: OBSMessage = await this.call('GetAuthRequired');
 
     if (response.authRequired)
       response = await this.call('Authenticate', {
-        auth: hasher(this.password, response.salt, response.challenge)});
+        auth: hasher(this.password, response.salt as string, response.challenge as string)});
     if (response.error)
       throw response.error;
 
-    this.connected = true;
+    this.__connected = true;
   }
   
-  add_event_listener(event: OBSEvent, callback: Function): void {
+  add_event_listener(event: OBSEvent, callback: ()=>any): void {
     if (!this.__callbacks.has(event))
       this.__callbacks.set(event, new Array());
   
     this.__callbacks.get(event).push(callback);
   }
 
-  emit_event(event: OBSEvent): void {
-    this.__callbacks.get(event).forEach(el => el());
+  async emit_event(event: OBSEvent): Promise<void> {
+    this.__callbacks.get(event).forEach(async(el) => await el());
   }
   
   async get_scene_list(exclude: string='.'): Promise<OBSMessage> {
@@ -99,11 +92,11 @@ class OBSWebSocket extends WebSocket {
     let scenes: String[] = [];
     let response = await this.call('GetSceneList');
 
-    response.scenes.forEach((el: any[]) => {
+    response['scenes'].forEach((el: any) => {
       if (!el['name'].startsWith(exclude))
         scenes.push(el['name']);
     })
-    active = scenes.indexOf(response['current-scene']);
+    active = scenes.indexOf(response['current-scene'] as string);
 
     return {'scenes': scenes, 'active': active};
   }
