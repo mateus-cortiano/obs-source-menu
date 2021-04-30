@@ -15,8 +15,7 @@ body{background-color:#111;color:#fff;font-family:'Inter','Roobert','Helvetica N
       <div id="error"></div>
       <div id="auth-div">
     </div>
-    <script defer="text/javascript">
-
+    <script defer type="text/javascript">
 (function () {
   var n;function e(n) {
     var e,
@@ -621,109 +620,199 @@ body{background-color:#111;color:#fff;font-family:'Inter','Roobert','Helvetica N
   })(this);
 })();
 
-
-const ENABLE_LOGGING = false;
-var SHA256 = new Hashes.SHA256();
-
-class OBSWebSocket extends WebSocket {
-    constructor(url, password) {
-        super(url || "ws://localhost:4444");
-        this.__uuid = 0;
-        this.__connected = false;
-        this.__password = password || "";
-        this.__message = new Map();
-        this.__callbacks = new Map();
-        this.__callbacks.set("switch-scene", Array());
-        this.addEventListener("message", this.messageHandler);
-        super.onopen = this.auth;
-    }
-    get connected() {
-        return this.__connected;
-    }
-    set onswitchscene(callback) {
-        this.__callbacks.get("switch-scene").push(callback);
-    }
-    get _nextid() {
-        this.__uuid++;
-        return this.__uuid.toString();
-    }
-    hash(salt, challenge, password) {
-        const secret = SHA256.b64(password + salt);
-        const auth_response = SHA256.b64(secret + challenge);
-        return auth_response;
-    }
-    async waitFor(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-    async retry(condition, maxRetries = 6) {
-        async function backoff(retries = 0) {
-            if (retries) await new Promise(resolve => setTimeout(resolve, 2 ** retries * 100));
-            if (condition()) return Promise.resolve();
-            if (retries > maxRetries) return Promise.reject("Max retries reached");
-            return backoff(retries + 1);
-        }
-        return backoff();
-    }
-    async send(request, payload) {
-        let R = payload || {};
-        R["message-id"] = this._nextid;
-        R["request-type"] = request;
-        super.send(JSON.stringify(R));
-        if (ENABLE_LOGGING) console.log(R);
-        return R["message-id"];
-    }
-    async call(request, payload) {
-        let id = await this.send(request, payload || {});
-        await this.retry(() => {
-            return this.__message.get(id);
+var __awaiter = this && this.__awaiter || function (thisArg, _arguments, P, generator) {
+    function adopt(value) {
+        return value instanceof P ? value : new P(function (resolve) {
+            resolve(value);
         });
-        let re = this.__message.get(id);
-        this.__message.delete(id);
-        return re;
     }
-    messageHandler(msg) {
-        let parsed = JSON.parse(msg.data);
-        this.__message.set(parsed["message-id"], parsed);
-        switch (parsed["update-type"]) {
-            case "SwitchScenes":
-                this.emit("switch-scene");
-                break;
-        }
-        if (ENABLE_LOGGING) console.log(parsed);
-    }
-    async auth() {
-        let res = await this.call("GetAuthRequired");
-        if (res["authRequired"]) {
-            res = await this.call("Authenticate", {
-                auth: this.hash(res["salt"], res["challenge"], this.__password)
-            });
-            switch (res["error"]) {
-                case undefined:
-                    break;
-                case "Authentication Failed.":
-                    throw Error("Authentication Failed");
-                default:
-                    throw Error("Authentication Error");
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) {
+            try {
+                step(generator.next(value));
+            } catch (e) {
+                reject(e);
             }
         }
-        this.__connected = true;
+        function rejected(value) {
+            try {
+                step(generator["throw"](value));
+            } catch (e) {
+                reject(e);
+            }
+        }
+        function step(result) {
+            result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+        }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var SHA256 = new Hashes.SHA256();
+function backoff_timer(condition, max_retries = 7, base_time_multiplier = 50) {
+    return __awaiter(this, void 0, void 0, function* () {
+        function retry(retries = 0) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (retries) yield new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * base_time_multiplier));
+                if (condition()) return Promise.resolve();
+                if (retries > max_retries) return Promise.reject("Max retries reached");
+                return retry(retries + 1);
+            });
+        }
+        return retry();
+    });
+}
+function hasher(password, salt, challenge) {
+    let secret = SHA256.b64(password + salt);
+    let auth_response = SHA256.b64(secret + challenge);
+    return auth_response;
+}
+function wait_for(ms) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    });
+}
+var obsEvents;
+(function (obsEvents) {
+    obsEvents[obsEvents["SwitchScenes"] = 0] = "SwitchScenes";
+    obsEvents[obsEvents["TransitionBegin"] = 1] = "TransitionBegin";
+})(obsEvents || (obsEvents = {}));
+
+class OBSWebSocket extends WebSocket {
+    constructor(url = 'ws://localhost:4444', password = '', logging = true) {
+        super(url);
+        this.__uuid = 1;
+        this.__buffer = {};
+        this.__password = password;
+        this.__connected = false;
+        this.__callbacks = new Map();
+        this.LOG_IO = logging;
+        super.onopen = this.connection_handler;
+        super.onmessage = this.message_handler;
     }
-    async getSceneList(exclude = ".") {
-        let scenes = [];
-        let res = await this.call("GetSceneList");
-        res["scenes"].forEach(el => {
-            if (!el["name"].startsWith(exclude)) scenes.push(el["name"]);
+    get isconnected() {
+        return this.__connected;
+    }
+    get password() {
+        return this.__password;
+    }
+    set connected(value) {
+        this.__connected = value;
+    }
+    isevent(event) {
+        return Boolean(event in obsEvents);
+    }
+    next_uuid() {
+        return String(this.__uuid++);
+    }
+    get_buffer(index) {
+        return this.__buffer[Number(index)];
+    }
+    add_to_buffer(index, value) {
+        this.__buffer[Number(index)] = value;
+    }
+    pop_buffer(index) {
+        let message = this.__buffer[Number(index)];
+        delete this.__buffer[Number(index)];
+        return message;
+    }
+    send(request, payload) {
+        const _super = Object.create(null, {
+            send: { get: () => super.send }
         });
-        let i_active = scenes.indexOf(res["current-scene"]);
-        return { scenes: scenes, active: i_active };
+        return __awaiter(this, void 0, void 0, function* () {
+            let message = payload || {};
+            message['message-id'] = this.next_uuid();
+            message['request-type'] = request;
+            _super.send.call(this, JSON.stringify(message));
+            if (this.LOG_IO) console.log("<", message);
+            return message['message-id'];
+        });
     }
-    async switchToScene(scene) {
-        await this.call("SetCurrentScene", { "scene-name": scene });
+    call(request, payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let message_id = yield this.send(request, payload);
+            yield backoff_timer(() => {
+                return Boolean(this.get_buffer(message_id));
+            });
+            return this.pop_buffer(message_id);
+        });
     }
-    emit(event) {
+    message_handler(event) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let message = JSON.parse(event.data);
+            let update = message['update-type'];
+            this.add_to_buffer(message['message-id'], message);
+            if (this.isevent(update) && this.__callbacks.has(update)) this.emit_event(update);
+            if (this.LOG_IO) console.log(">", message);
+        });
+    }
+    connection_handler() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let response = yield this.call('GetAuthRequired');
+            if (response.authRequired) response = yield this.call('Authenticate', {
+                auth: hasher(this.password, response.salt, response.challenge)
+            });
+            if (response.error) throw response.error;
+            this.connected = true;
+        });
+    }
+    add_event_listener(event, callback) {
+        if (!this.__callbacks.has(event)) this.__callbacks.set(event, new Array());
+        this.__callbacks.get(event).push(callback);
+    }
+    emit_event(event) {
         this.__callbacks.get(event).forEach(el => el());
     }
+    get_scene_list(exclude = '.') {
+        return __awaiter(this, void 0, void 0, function* () {
+            let active;
+            let scenes = [];
+            let response = yield this.call('GetSceneList');
+            response.scenes.forEach(el => {
+                if (!el['name'].startsWith(exclude)) scenes.push(el['name']);
+            });
+            active = scenes.indexOf(response['current-scene']);
+            return { 'scenes': scenes, 'active': active };
+        });
+    }
+    switch_to_scene(scene) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.call('SetCurrentScene', { 'scene-name': scene });
+        });
+    }
 }
+
+
+
+
+// var __awaiter = this && this.__awaiter || function (thisArg, _arguments, P, generator) {
+//     function adopt(value) {
+//         return value instanceof P ? value : new P(function (resolve) {
+//             resolve(value);
+//         });
+//     }
+//     return new (P || (P = Promise))(function (resolve, reject) {
+//         function fulfilled(value) {
+//             try {
+//                 step(generator.next(value));
+//             } catch (e) {
+//                 reject(e);
+//             }
+//         }
+//         function rejected(value) {
+//             try {
+//                 step(generator["throw"](value));
+//             } catch (e) {
+//                 reject(e);
+//             }
+//         }
+//         function step(result) {
+//             result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+//         }
+//         step((generator = generator.apply(thisArg, _arguments || [])).next());
+//     });
+// };
+
 const doc = document;
 const authDiv = doc.getElementById("auth-div");
 const sceneListDiv = doc.getElementById("scene-list");
@@ -732,6 +821,7 @@ function keyEventHandler(ev) {
     switch (ev.key) {
         case "Enter":
             connect();
+            break;
     }
 }
 function returnElement(attributes) {
@@ -740,37 +830,43 @@ function returnElement(attributes) {
     el.textContent = attributes["textContent"];
     return el;
 }
-async function connect() {
-    authDiv.className = "fade-out-mid";
-    let host = authElements["host"].value;
-    let pass = authElements["pass"].value;
-    var ws = new OBSWebSocket(host, pass);
-    await ws.retry(() => {
-        return ws.connected;
-    });
-    if (ws.connected) {
-        authDiv.className = "fade-out-end";
-        await ws.waitFor(900);
-        authDiv.remove();
-        const updateButtons = async function () {
-            let res = await ws.getSceneList();
-            sceneListDiv.innerHTML = "";
-            res["scenes"].forEach((element, i) => {
-                let el = document.createElement("button");
-                el.textContent = element;
-                if (i == res["active"]) el.className = "selected";
-                el.addEventListener("click", () => {
-                    sceneListDiv.getElementsByClassName("selected")[0].className = "";
-                    el.className = "selected";
-                    ws.switchToScene(el.textContent);
+function connect() {
+    return __awaiter(this, void 0, void 0, function* () {
+        authDiv.className = "fade-out-mid";
+        let host = authElements["host"].value || "ws://localhost:4444";
+        let pass = authElements["pass"].value;
+        var ws = new OBSWebSocket(host, pass);
+        yield backoff_timer(() => {
+            return ws.isconnected;
+        });
+        if (ws.isconnected) {
+            authDiv.className = "fade-out-end";
+            yield wait_for(900);
+            authDiv.remove();
+            const updateButtons = function () {
+                return __awaiter(this, void 0, void 0, function* () {
+                    let res = yield ws.get_scene_list();
+                    sceneListDiv.innerHTML = "";
+                    res.scenes.forEach((element, i) => {
+                        let el = document.createElement("button");
+                        el.textContent = element;
+                        if (i == res["active"]) el.className = "selected";
+                        el.addEventListener("click", () => {
+                            sceneListDiv.getElementsByClassName("selected")[0].className = "";
+                            el.className = "selected";
+                            ws.switch_to_scene(el.textContent);
+                        });
+                        sceneListDiv.appendChild(el);
+                    });
                 });
-                sceneListDiv.appendChild(el);
-            });
-        };
-        await updateButtons();
-        ws.onswitchscene = async () => await updateButtons();
-        sceneListDiv.className = "fade-in-image";
-    }
+            };
+            yield updateButtons();
+            ws.add_event_listener("SwitchScenes", () => __awaiter(this, void 0, void 0, function* () {
+                return yield updateButtons();
+            }));
+            sceneListDiv.className = "fade-in-image";
+        }
+    });
 }
 function main() {
     const authForm = [{
