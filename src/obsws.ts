@@ -1,6 +1,7 @@
 'use strict';
 import {OBSMessage, MessageBuffer, OBSEvent} from './util/types';
-import {backoff_timer, hasher} from './util/funcs';
+import {wait_for_condition} from './util/timers';
+import {hasher} from "./util/hash";
 
 export class OBSWebSocket extends WebSocket {
   protected __password: string;
@@ -45,7 +46,7 @@ export class OBSWebSocket extends WebSocket {
 
   async call(request: string, payload?: OBSMessage): Promise<OBSMessage> {
     let message_id = await this.send(request, payload);
-    await backoff_timer(() => {return this.__buffer.has(message_id)});
+    await wait_for_condition(() => {return this.__buffer.has(message_id)});
     return this.__buffer.pop(message_id);
   }
 

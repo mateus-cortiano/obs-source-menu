@@ -1,6 +1,6 @@
 import {OBSWebSocket} from "./obsws";
 import {OBSMessage} from "./util/types";
-import {backoff_timer, wait_for} from "./util/funcs"
+import {wait_for_condition, wait_for} from "./util/timers"
 
 const doc: Document = document;
 const authDiv: HTMLElement = doc.getElementById("auth-div")!;
@@ -28,7 +28,7 @@ async function connect(): Promise<any> {
 
   var ws = new OBSWebSocket(host, pass);
 
-  await backoff_timer(() => { return ws.isconnected; });
+  await wait_for_condition(() => { return ws.isconnected; });
 
   if (ws.isconnected) {
     authDiv.className = "fade-out-end";
