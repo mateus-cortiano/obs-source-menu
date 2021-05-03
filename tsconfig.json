@@ -12,6 +12,7 @@
 
     /* options */
     "strict": true,
+    "strictNullChecks": true,
     "target": "ES6",
     "removeComments": true,
     "module": "ES6",
