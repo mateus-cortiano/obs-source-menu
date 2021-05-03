@@ -1,14 +1,15 @@
 'use strict';
-import {OBSMessage, MessageBuffer, OBSEvent} from './util/types';
+import {OBSMessage, MessageBuffer, OBSEvent, eOBSEvents} from './util/types';
+import {EventMap} from './util/eventmap';
 import {wait_for_condition} from './util/timers';
 import {hasher} from "./util/hash";
 
 export class OBSWebSocket extends WebSocket {
+  _: EventMap <OBSEvent>;
   protected __password: string;
   protected __connected: Boolean;
   protected __uuid: number;
   protected __buffer: MessageBuffer;
-  protected __callbacks: Map <OBSEvent | undefined, Function[]>;
   protected LOG_IO: boolean;
 
   get isconnected(): Boolean { return this.__connected }
@@ -22,11 +23,11 @@ export class OBSWebSocket extends WebSocket {
   ) {
     super(url);
     
+    this._ = new EventMap<OBSEvent>(eOBSEvents);
     this.__uuid = 1;
     this.__connected = false;
     this.__password = password;
     this.__buffer = new MessageBuffer();
-    this.__callbacks = new Map <OBSEvent, Function[]>();
     this.LOG_IO = logging;
 
     super.onopen = this.connection_handler;
@@ -57,8 +58,8 @@ export class OBSWebSocket extends WebSocket {
     if (message['message-id'])
       this.__buffer.add(message);
 
-    if (this.__callbacks.has(update as OBSEvent))
-      this.emit_event(update as OBSEvent);
+    if (update)
+      this._.emit(update as OBSEvent);
 
     if (this.LOG_IO) console.log(">", message);
   }
@@ -76,14 +77,12 @@ export class OBSWebSocket extends WebSocket {
     this.__connected = true;
   }
 
-  add_event_listener(event: OBSEvent, callback: ()=>any): void {
-    if (!this.__callbacks.has(event))
-      this.__callbacks.set(event, new Array());
-    this.__callbacks.get(event)!.push(callback);
+  add_event_listener(event: OBSEvent, callback: ()=>any, ...args: any): void {
+    this._.add(event, callback, ...args || null);
   }
 
   async emit_event(event: OBSEvent): Promise<void> {
-    this.__callbacks.get(event)!.forEach(async(el) => await el());
+    this._.emit(event);
   }
 
   async get_scene_list(exclude: string='.'): Promise<OBSMessage> {

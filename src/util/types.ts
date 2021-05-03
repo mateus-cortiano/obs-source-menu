@@ -1,7 +1,9 @@
+export enum eOBSEvents {
+  "TransitionBegin",
+  "SwitchScenes"
+}
 
-export type OBSEvent =
-  | "SwitchScenes" 
-  | "TransitionBegin"
+export type OBSEvent = keyof typeof eOBSEvents
 
 export interface OBSMessage {
   "message-id"?: string | number,

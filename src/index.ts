@@ -53,8 +53,8 @@ async function connect(): Promise<any> {
     };
 
     await updateButtons();
-    ws.add_event_listener("TransitionBegin", async () => await updateButtons());
-    ws.add_event_listener("SwitchScenes", async () => await updateButtons());
+    ws.add_event_listener("TransitionBegin", updateButtons);
+    ws.add_event_listener("SwitchScenes", updateButtons);
     sceneListDiv.className = "fade-in-image";
   }
 }

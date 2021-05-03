@@ -24,7 +24,7 @@ export async function wait_for_condition(
     if (retries)
       await wait_for(2 ** retries * base_time_multiplier);
     if (condition()) return Promise.resolve();
-    if (retries > max_retries) return Promise.reject("Max retries reached");
+    if (retries > max_retries) return Promise.reject(`Max retries reached for ${condition}`);
 
     return retry(retries + 1);
   }
