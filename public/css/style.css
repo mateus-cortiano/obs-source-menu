@@ -81,6 +81,10 @@ button:hover {
 
 }
 
+button:active {
+  background-color: #5c16c5;
+}
+
 .selected {
   background-color: #6ABE30;
 }
@@ -89,9 +93,6 @@ button:hover {
   background-color: #51971e;
 }
 
-button:active {
-  background-color: #5c16c5;
-}
 
 ::-webkit-scrollbar {
   width: 1rem;

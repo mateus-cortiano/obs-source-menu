@@ -19,7 +19,7 @@ export class EventMap<EventDescriptor extends string> {
     this._ = {};
   }
 
-  add(event: EventDescriptor, callback: Function, ...args: any[]): number {
+  async add(event: EventDescriptor, callback: Function, ...args: any[]): Promise<number> {
     let success:number = -1;
     try {
       if (this._listeners >= this.MAX_LISTENERS)
@@ -41,24 +41,24 @@ export class EventMap<EventDescriptor extends string> {
     }
   }
 
-  remove(event: EventDescriptor, index: number) { this._listeners--; this._[event]!.splice(index, 1); }
+  async remove(event: EventDescriptor, index: number) { this._listeners--; this._[event]!.splice(index, 1); }
 
-  clear(event: EventDescriptor) {
+  async clear(event: EventDescriptor) {
     while (this._[event]?.pop()) {
       this._listeners--;
     }
     this._[event] = new Array<FunctionDescriptor>();
   }
 
-  emit(event: EventDescriptor, context?: any) {
+  async emit(event: EventDescriptor, context?: any) {
     try {
       if (this.is_event(event) && this.is_function_descriptor(this._[event])) { 
           if (context)
             for (let callback of this._[event]!)
-              callback.func(context, ...callback.args);
+              await callback.func(context, ...callback.args);
           else
             for (let callback of this._[event]!)
-              callback.func(...callback.args);
+              await callback.func(...callback.args);
       }
       else
         throw TypeError;

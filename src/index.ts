@@ -35,8 +35,8 @@ async function connect(): Promise<any> {
     await wait_for(900);
     authDiv.remove();
 
-    const updateButtons = async function () {
-      let response: OBSMessage = await ws.get_scene_list();
+    const updateButtons = async function (exclude: string=".") {
+      let response: OBSMessage = await ws.get_scene_list(exclude);
       
       sceneListDiv.innerHTML = "";
       response['scenes'].forEach((element: string, i: number) => {

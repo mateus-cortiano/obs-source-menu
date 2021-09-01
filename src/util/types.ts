@@ -1,24 +1,25 @@
 export enum eOBSEvents {
   "TransitionBegin",
-  "SwitchScenes"
+  "SwitchScenes",
+  "SourceCreated"
 }
 
 export type OBSEvent = keyof typeof eOBSEvents
 
 export interface OBSMessage {
   "message-id"?: string | number,
-  "salt"?: string | undefined,
-  "challenge"?: string | undefined,
-  "request-type"?: string | undefined,
-  "update-type"?: string | undefined,
-  "error"?: string | undefined,
-  "active"?: number | undefined,
-  "name"?: string | undefined,
-  "scenes"?: any | undefined,
-  "scene-name"?: string | undefined,
-  "current-scene"?: string | undefined,
-  "authRequired"?: string | undefined,
-  [key: string]: string | number | string[] | {} | any | undefined,
+  "salt"?: string,
+  "challenge"?: string,
+  "request-type"?: string,
+  "update-type"?: string,
+  "error"?: string,
+  "active"?: number,
+  "name"?: string,
+  "scenes"?: any,
+  "scene-name"?: string,
+  "current-scene"?: string,
+  "authRequired"?: string,
+  [key: string]: any,
 }
 
 export class MessageBuffer {
