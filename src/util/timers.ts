@@ -1,3 +1,4 @@
+/* timers.ts */
 
 /**
  * async function that wait for determined time
@@ -17,18 +18,19 @@ export async function wait_for(ms: number): Promise<void> {
  */
 export async function wait_for_condition(
   condition: () => Boolean,
-  max_retries: number = 7,
-  base_time_multiplier: number = 50
-): Promise<any> {
-  async function retry(retries: number = 0): Promise<any> {
-    if (retries)
-      await wait_for(2 ** retries * base_time_multiplier);
-    if (condition()) return Promise.resolve();
-    if (retries > max_retries) return Promise.reject(`Max retries reached for ${condition}`);
+  max_retries = 6,
+  time_mult = 5
+) {
+  async function retry(retries = 0): Promise<any> {
+    if (condition()) return Promise.resolve()
 
-    return retry(retries + 1);
+    if (retries > max_retries)
+      return Promise.reject(`Max retries reached for ${condition}`)
+
+    await wait_for(time_mult ** retries)
+
+    return retry(retries + 1)
   }
-  return retry();
+
+  return retry()
 }
-
-
