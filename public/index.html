@@ -1,17 +1,28 @@
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="./css/style.css">
-  <title>vadiobs websocket</title>
+  <link rel="icon" type="image/x-icon" href="./res/vbot.ico">
+  <title>obs sources</title>
 </head>
+
 <body>
   <div id="scene-list"></div>
-    <div class="center fade-in-image">
-      <div id="error"></div>
-      <div id="auth-div">
+  <div class="center fade-in-image">
+    <div id="error"></div>
+    <div id="auth-div">
+      <form>
+        <input name="host-input" tag="input" id="host-input" type="text" placeholder="host" textcontent=""
+          autocomplete="username"></input>
+        <input name="password-input" tag="input" id="password-input" type="password" placeholder="password"
+          textcontent="" autocomplete="current-password"></input>
+        <button name="button" tag="button" id="connect-btn" textcontent="connect">connect</button>
+      </form>
     </div>
     <script defer src="./app/bundle.js" type="module"></script>
-  </body>
+</body>
+
 </html>
