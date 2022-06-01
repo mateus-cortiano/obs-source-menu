@@ -1,23 +1,21 @@
 {
-  /* in directory */
-  "include": ["./src/**/*", ],
-
-  /* exclude */
-  "exclude": ["node_modules", "build"],
-
+  "compileOnSave": true,
   "compilerOptions": {
-    /* out directory */
-    "outDir": "../build/app",
-    "moduleResolution": "Node",
-
-    /* options */
-    "strict": true,
-    "strictNullChecks": true,
-    "target": "ES6",
-    "removeComments": true,
-    "module": "ES6",
+    "allowJs": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "allowJs": true,
-  }
+    "module": "commonjs",
+    "moduleResolution": "Node",
+    "outDir": "../public",
+    "removeComments": true,
+    "sourceMap": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "target": "es2016",
+    "typeRoots": ["../node_modules/@types"],
+    "types": ["jest", "node", "mocha"],
+    "skipLibCheck": true
+  },
+  "exclude": ["./plugins/**/*", "./typings/**/*", "./dist/**/*"],
+  "include": ["./src/**/*"]
 }
