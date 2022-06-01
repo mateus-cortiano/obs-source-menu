@@ -1,28 +1,33 @@
+<!-- index.html -->
+
 <html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="./css/style.css">
-  <link rel="icon" type="image/x-icon" href="./res/vbot.ico">
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="./bundle.js" type="module"></script>
   <title>obs sources</title>
 </head>
 
 <body>
-  <div id="scene-list"></div>
-  <div class="center fade-in-image">
-    <div id="error"></div>
-    <div id="auth-div">
-      <form>
-        <input name="host-input" tag="input" id="host-input" type="text" placeholder="host" textcontent=""
+
+  <div name="main" class="main">
+    <div name="scene-list"></div>
+    <div name="error" id="error"></div>
+    <div name="auth-form" id="auth-form">
+      <form id="form-auth" name="auth-form">
+        <p name="form-title">obs scenes</p>
+        <input name="host-input" tag="input" id="host-input" type="text" placeholder="host"
           autocomplete="username"></input>
         <input name="password-input" tag="input" id="password-input" type="password" placeholder="password"
-          textcontent="" autocomplete="current-password"></input>
-        <button name="button" tag="button" id="connect-btn" textcontent="connect">connect</button>
+          autocomplete="current-password"></input>
+        <button name="connect-btn" tag="button" id="connect-btn">connect</button>
       </form>
     </div>
-    <script defer src="./app/bundle.js" type="module"></script>
+  </div>
+
 </body>
 
 </html>
