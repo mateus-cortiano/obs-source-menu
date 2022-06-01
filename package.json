@@ -1,32 +1,42 @@
 {
   "name": "obs-ts",
-  "version": "1.0.0",
-  "description": "asynchronous websocket wrapper for obs",
+  "version": "2.0.0",
+  "description": "a cutter source menu for obs",
   "main": "index.ts",
   "scripts": {
+    "test": "jest",
     "serve": "webpack-dev-server",
     "build": "webpack --mode production",
     "watch": "webpack --watch --mode development"
   },
   "repository": {
     "type": "git",
-    "url": "github.com/mtxwrz/obsws-ts"
+    "url": "github.com/mateus-cortiano/obsws-ts"
   },
   "keywords": [
     "typescript",
+    "websockets",
     "obs",
-    "websockets"
+    "obs-studio",
+    "streaming"
   ],
-  "author": "mateus schwarz",
-  "license": "ISC",
+  "author": "mateus cortiano schwarz",
+  "license": "MIT",
   "dependencies": {
-    "jshashes": "^1.0.8",
-    "ts-loader": "^9.1.1"
+    "jquery": "^3.6.0",
+    "jssha": "^3.2.0",
+    "ts-loader": "*"
   },
   "devDependencies": {
-    "typescript": "^4.2.4",
-    "webpack": "^5.36.2",
-    "webpack-cli": "^4.6.0",
-    "webpack-dev-server": "^3.11.2"
+    "@types/jest": "^27.5.1",
+    "@types/jquery": "^3.5.14",
+    "@types/mocha": "^9.1.1",
+    "@types/node": "^17.0.38",
+    "jest": "^28.1.0",
+    "ts-jest": "^28.0.3",
+    "typescript": "*",
+    "webpack": "*",
+    "webpack-cli": "*",
+    "webpack-dev-server": "*"
   }
 }
