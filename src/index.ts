@@ -13,6 +13,11 @@ const scenediv = new SceneList()
 
 // ---
 
+async function update_scenes() {
+  let scenelist = await obsws.get_scene_list()
+  scenediv.update(scenelist.scenes, scenelist.active as number)
+}
+
 authform.on_submit(async ev => {
   ev.preventDefault()
   authform.disable()
@@ -30,10 +35,8 @@ authform.on_submit(async ev => {
     return
   }
 
-  let scenelist = await obsws.get_scene_list()
-
+  await update_scenes()
   slider.slide_left()
-  scenediv.update(scenelist.scenes, scenelist.active as number)
 
   obsws.events.on('ConnectionClosed', async reason => {
     console.error(reason)
@@ -54,7 +57,5 @@ scenediv.on_click(async ev => {
   if (ev.target.classList.contains('selected')) return
 
   await obsws.switch_to_scene(ev.target.name)
-
-  let scenelist = await obsws.get_scene_list()
-  scenediv.update(scenelist.scenes, scenelist.active as number)
+  await update_scenes()
 })
