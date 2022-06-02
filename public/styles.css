@@ -39,6 +39,7 @@ div[name='slider'] {
   display: grid;
   grid-template-columns: 100% 100%;
   gap: 100%;
+  transition: transform 800ms ease-in-out;
 }
 
 div[name='scene-list'] {
@@ -150,7 +151,6 @@ button.selected:hover {
 }
 
 .slider-swipe-left {
-  transition: transform 800ms ease-in-out;
   transform: translateX(-200%);
 }
 
