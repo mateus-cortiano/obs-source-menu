@@ -1,0 +1,211 @@
+<!-- obs studio scene menu -->
+
+  <!-- index.html -->
+  
+  <html lang="en">
+  
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./styles.css">
+    <script defer src="./bundle.js" type="module"></script>
+    <title>obs sources</title>
+  </head>
+  
+  <body>
+  
+    <div name="main" class="main">
+      <div name="slider">
+        <div name="auth-form" id="auth-form">
+          <form id="form-auth" name="auth-form">
+            <input name="host-input" tag="input" id="host-input" type="text" placeholder="host"
+              autocomplete="username"></input>
+            <input name="password-input" tag="input" id="password-input" type="password" placeholder="password"
+              autocomplete="current-password"></input>
+            <button name="connect-btn" tag="button" id="connect-btn" type="submit">connect</button>
+          </form>
+          <div name="error" id="error" class="hidden"></div>
+        </div>
+        <div name="scene-list" id="scene-list">
+        </div>
+      </div>
+    </div>
+  
+  </body>
+  
+  </html>
+  
+<style>
+  /* styles.css */
+  
+  * {
+    font-size: small;
+    font-family: 'Inter', 'Roobert', 'Helvetica Neue', Helvetica, Arial,
+      sans-serif;
+    box-sizing: border-box;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #111;
+    color: #fff;
+  
+    text-decoration: none;
+    user-select: none;
+    -webkit-user-select: none;
+  
+    display: flex;
+    justify-content: center;
+  }
+  
+  *:focus {
+    outline: 0;
+  }
+  
+  /* --- */
+  
+  div[name='main'] {
+    padding: 6% 6% 6% 6%;
+    width: 100%;
+    max-width: 460px;
+  
+    overflow: hidden;
+  }
+  
+  div[name='slider'] {
+    display: grid;
+    grid-template-columns: 100% 100%;
+    gap: 100%;
+    transition: transform 800ms ease-in-out;
+  }
+  
+  div[name='scene-list'] {
+    width: 100%;
+  
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  div[name='error'] {
+    width: 100%;
+  
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  form[name='auth-form'] {
+    width: 100%;
+  
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .title {
+    font-weight: 400;
+    color: #363636;
+  }
+  
+  input {
+    padding-left: 0.5rem;
+  
+    width: 100%;
+    height: 38px;
+  
+    border-color: #111;
+    color: #fff;
+    background-color: #262626;
+    box-shadow: #262626;
+    border-radius: 0.4rem;
+  
+    font-weight: 400;
+  
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -moz-box-align: center;
+    -webkit-box-align: center;
+  }
+  
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    box-shadow: 0 0 0 50px #262626 inset !important;
+    -webkit-text-fill-color: #fff;
+    -webkit-box-shadow: 0 0 0 50px #262626 inset !important;
+  }
+  
+  input:disabled {
+    user-select: none;
+  }
+  
+  button {
+    width: 100%;
+    height: 42px;
+  
+    color: #fff;
+    background-color: #9147ff;
+    border-color: #111;
+    border-radius: 0.4rem;
+  
+    font-size: 1rem;
+    font-weight: 600;
+  
+    align-items: center !important;
+    justify-content: center;
+    -webkit-box-align: center;
+    -moz-box-align: center;
+  }
+  
+  button:hover {
+    background-color: #772ce8;
+  }
+  
+  button:active {
+    background-color: #5c16c5;
+  }
+  
+  button:disabled {
+    background-color: #464646;
+  }
+  
+  button.selected {
+    background-color: #6abe30;
+  }
+  
+  button.selected:hover {
+    background-color: #51971e;
+  }
+  
+  /* --- */
+  
+  .hidden {
+    display: none;
+    visibility: hidden;
+  }
+  
+  .slider-swipe-left {
+    transform: translateX(-200%);
+  }
+  
+  /* --- */
+  
+  ::-webkit-scrollbar {
+    width: 1rem;
+  }
+  ::-webkit-scrollbar-track {
+    background: #111111;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #262626;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #262626;
+  }
+  
+</style>
