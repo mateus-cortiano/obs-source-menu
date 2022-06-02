@@ -8,7 +8,7 @@ a cutter menu for listing and selecting obs sources that works via websockets.
 **INSTALLATION**
 1. Clone git repository.
 1. Run `npm run build`.
-1. Add a Custom Browser Dock in OBS Studio (View/Docks/Custom Browser Docks) with the URL pointing to the generated index.html.
+1. Add a Custom Browser Dock in OBS Studio (View/Docks/Custom Browser Docks) with the URL pointing to the generated index.html (./public/index.html).
 1. Make sure to configure and enable <a href="https://obsproject.com/forum/resources/obs-websocket-remote-control-obs-studio-from-websockets.466/">OBS WebSockets</a> server.
 
 **TO DO**
