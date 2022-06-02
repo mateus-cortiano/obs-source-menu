@@ -1,55 +1,52 @@
-import { OBSWebSocket } from './obsws'
-import { OBSMessage } from './util/types'
-import { wait_for_condition, wait_for } from './util/timers'
+/* index.ts */
 
-const doc: Document = document
-const authDiv: HTMLElement = doc.getElementById('auth-div')!
-const sceneListDiv: HTMLElement = doc.getElementById('scene-list')!
-const connectBtn: HTMLElement = doc.getElementById('connect-btn')!
+import OBSWebSocket from './socket/obsws'
+import { Slider, SceneList, AuthForm } from './views'
+import { wait_for } from './socket/timers'
 
-connectBtn.addEventListener('click', event => {
-  event.preventDefault()
-  const hostInput = doc.getElementById('host-input') as HTMLInputElement
-  const passInput = doc.getElementById('password-input') as HTMLInputElement
-  let host = hostInput.value as string
-  let pass = passInput.value as string
-  connect(host, pass)
+// ---
+
+let obsws: OBSWebSocket
+const slider = new Slider()
+const authform = new AuthForm()
+const scenediv = new SceneList()
+
+// ---
+
+authform.on_submit(async ev => {
+  ev.preventDefault()
+  authform.disable()
+
+  obsws = new OBSWebSocket(authform.current_input)
+
+  await obsws.start()
+
+  try {
+    await wait_for(() => obsws.isconnected)
+  } catch (e) {
+    if (obsws.error) authform.show_error(obsws.error)
+    else authform.show_error('Connection timed out')
+    authform.enable()
+    return
+  }
+
+  let scenelist = await obsws.get_scene_list()
+
+  slider.slide_left()
+  scenediv.update(scenelist.scenes, scenelist.active as number)
+
+  obsws.events.on('SwitchScenes', async (from_scene, to_scene) => {
+    let scenelist = await obsws.get_scene_list()
+    scenediv.update(scenelist.scenes, scenelist.active as number)
+  })
 })
 
-async function connect(host: string, pass: string): Promise<any> {
-  authDiv.className = 'fade-out-mid'
+scenediv.on_click(async ev => {
+  if (ev.target.tagName !== 'BUTTON') return
+  if (ev.target.classList.contains('selected')) return
 
-  var ws = new OBSWebSocket(host || 'ws://localhost:4444', pass)
+  await obsws.switch_to_scene(ev.target.name)
 
-  await wait_for_condition(() => {
-    return ws.isconnected
-  })
-
-  if (ws.isconnected) {
-    authDiv.className = 'fade-out-end'
-    await wait_for(900)
-    authDiv.remove()
-
-    const updateButtons = async function (exclude: string = '.') {
-      let response: OBSMessage = await ws.get_scene_list(exclude)
-
-      sceneListDiv.innerHTML = ''
-      response['scenes'].forEach((element: string, i: number) => {
-        let el = doc.createElement('button')
-        el.textContent = element
-        if (i == response['active']) el.className = 'selected'
-        el.addEventListener('click', () => {
-          sceneListDiv.getElementsByClassName('selected')[0].className = ''
-          el.className = 'selected'
-          ws.switch_to_scene(el.textContent as string)
-        })
-        sceneListDiv.appendChild(el)
-      })
-    }
-
-    await updateButtons()
-    ws.add_event_listener('TransitionBegin', updateButtons)
-    ws.add_event_listener('SwitchScenes', updateButtons)
-    sceneListDiv.className = 'fade-in-image'
-  }
-}
+  let scenelist = await obsws.get_scene_list()
+  scenediv.update(scenelist.scenes, scenelist.active as number)
+})
