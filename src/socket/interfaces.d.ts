@@ -20,4 +20,6 @@ export interface OBSMessage {
   current_scene?: string
   authRequired?: string
   auth?: string
+  from_scene?: string
+  to_scene?: string
 }
