@@ -6,7 +6,7 @@ export async function sleep(ms: number): Promise<void> {
 
 export async function wait_for(
   condition: () => Boolean,
-  max_retries = 6,
+  max_retries = 5,
   time_mult = 5
 ) {
   async function retry(retries = 0): Promise<any> {
