@@ -14,17 +14,19 @@
 <body>
 
   <div name="main" class="main">
-    <div name="scene-list"></div>
-    <div name="error" id="error"></div>
-    <div name="auth-form" id="auth-form">
-      <form id="form-auth" name="auth-form">
-        <p name="form-title">obs scenes</p>
-        <input name="host-input" tag="input" id="host-input" type="text" placeholder="host"
-          autocomplete="username"></input>
-        <input name="password-input" tag="input" id="password-input" type="password" placeholder="password"
-          autocomplete="current-password"></input>
-        <button name="connect-btn" tag="button" id="connect-btn">connect</button>
-      </form>
+    <div name="slider">
+      <div name="auth-form" id="auth-form">
+        <form id="form-auth" name="auth-form">
+          <input name="host-input" tag="input" id="host-input" type="text" placeholder="host"
+            autocomplete="username"></input>
+          <input name="password-input" tag="input" id="password-input" type="password" placeholder="password"
+            autocomplete="current-password"></input>
+          <button name="connect-btn" tag="button" id="connect-btn" type="submit">connect</button>
+        </form>
+        <div name="error" id="error" class="hidden"></div>
+      </div>
+      <div name="scene-list" id="scene-list">
+      </div>
     </div>
   </div>
 
