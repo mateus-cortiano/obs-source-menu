@@ -2,7 +2,7 @@
 
 'use strict'
 import { OBSMessage, OBSEvents } from './interfaces'
-import { EventSystem } from './events'
+import { AsyncEventSystem } from './events'
 import { wait_for } from './timers'
 import { hasher } from './hash'
 import { parse, stringify, parse_host } from './parse'
@@ -20,7 +20,7 @@ const DefaultOpts: OBSWebSocketOpts = {
 }
 
 export default class OBSWebSocket {
-  public events: EventSystem<OBSEvents>
+  public events: AsyncEventSystem<OBSEvents>
   readonly host: string
   private password: string
   private connected: Boolean
@@ -37,7 +37,7 @@ export default class OBSWebSocket {
     this.messageid = 1
     this.connected = false
     this.buffer = new Map()
-    this.events = new EventSystem()
+    this.events = new AsyncEventSystem()
   }
 
   get isconnected(): Boolean {
@@ -56,6 +56,7 @@ export default class OBSWebSocket {
     this.websocket = new WebSocket(this.host)
     this.websocket.onopen = this.auth_handler.bind(this)
     this.websocket.onmessage = this.message_handler.bind(this)
+    this.websocket.onclose = this.close_handler.bind(this)
   }
 
   async send(request: string, payload?: OBSMessage): Promise<string> {
@@ -74,6 +75,10 @@ export default class OBSWebSocket {
     await wait_for(() => this.buffer.has(message_id))
 
     return this.buffer.get(message_id) as OBSMessage
+  }
+
+  async close_handler(event: CloseEvent): Promise<void> {
+    this.events.emit('ConnectionClosed', event.reason)
   }
 
   protected async message_handler(event: MessageEvent): Promise<void> {
