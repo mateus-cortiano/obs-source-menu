@@ -4,6 +4,7 @@ export interface OBSEvents {
   TransitionBegin: (from_scene: string, to_scene: string) => void
   SwitchScenes: (from_scene: string, to_scene: string) => void
   SourceCreated: (source_name: string) => void
+  ConnectionClosed: (reaseon: string) => void
 }
 
 export interface OBSMessage {
