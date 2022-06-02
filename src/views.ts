@@ -89,6 +89,10 @@ export class SceneList {
     })
   }
 
+  clear_list() {
+    this.update([], -1)
+  }
+
   get current_selected() {
     for (let el of this.scene_div.children())
       if (el.classList.contains('selected')) return el

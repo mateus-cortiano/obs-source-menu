@@ -39,8 +39,7 @@ authform.on_submit(async ev => {
   slider.slide_left()
 
   obsws.events.on('ConnectionClosed', async reason => {
-    console.error(reason)
-    scenediv.update([], -1)
+    scenediv.clear_list()
     slider.slide_right()
     authform.enable()
     authform.show_error('Connection closed server side')
