@@ -35,6 +35,13 @@ authform.on_submit(async ev => {
   slider.slide_left()
   scenediv.update(scenelist.scenes, scenelist.active as number)
 
+  obsws.events.on('ConnectionClosed', async reason => {
+    console.error(reason)
+    scenediv.update([], -1)
+    slider.slide_right()
+    authform.enable()
+  })
+
   obsws.events.on('SwitchScenes', async (from_scene, to_scene) => {
     let scenelist = await obsws.get_scene_list()
     scenediv.update(scenelist.scenes, scenelist.active as number)
