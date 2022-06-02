@@ -40,6 +40,7 @@ authform.on_submit(async ev => {
     scenediv.update([], -1)
     slider.slide_right()
     authform.enable()
+    authform.show_error('Connection closed server side')
   })
 
   obsws.events.on('SwitchScenes', async (from_scene, to_scene) => {
