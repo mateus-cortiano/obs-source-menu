@@ -1,15 +1,17 @@
 /* styles.css */
 
-body {
-  margin: 0;
-  padding: 0;
-
-  background-color: #111;
-  color: #fff;
-
+* {
   font-size: small;
   font-family: 'Inter', 'Roobert', 'Helvetica Neue', Helvetica, Arial,
     sans-serif;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #111;
+  color: #fff;
 
   text-decoration: none;
   user-select: none;
@@ -23,10 +25,36 @@ body {
   outline: 0;
 }
 
+/* --- */
+
 div[name='main'] {
-  padding: 12px 3% 32px 3%;
+  padding: 6% 6% 6% 6%;
   width: 100%;
   max-width: 460px;
+
+  overflow: hidden;
+}
+
+div[name='slider'] {
+  display: grid;
+  grid-template-columns: 100% 100%;
+  gap: 100%;
+}
+
+div[name='scene-list'] {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+div[name='error'] {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 form[name='auth-form'] {
@@ -37,7 +65,7 @@ form[name='auth-form'] {
   align-items: center;
 }
 
-p[name='form-title'] {
+.title {
   font-weight: 400;
   color: #363636;
 }
@@ -72,6 +100,10 @@ input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 50px #262626 inset !important;
 }
 
+input:disabled {
+  user-select: none;
+}
+
 button {
   width: 100%;
   height: 42px;
@@ -98,13 +130,31 @@ button:active {
   background-color: #5c16c5;
 }
 
-.selected {
+button:disabled {
+  background-color: #464646;
+}
+
+button.selected {
   background-color: #6abe30;
 }
 
-.selected:hover {
+button.selected:hover {
   background-color: #51971e;
 }
+
+/* --- */
+
+.hidden {
+  display: none;
+  visibility: hidden;
+}
+
+.slider-swipe-left {
+  transition: transform 800ms ease-in-out;
+  transform: translateX(-200%);
+}
+
+/* --- */
 
 ::-webkit-scrollbar {
   width: 1rem;
