@@ -5,7 +5,7 @@ const fs = require('fs')
 // ---
 
 const TITLE = 'obs studio scene menu'
-const OUTPUT_FILE = './dist/bundle.html'
+const OUTPUT_FILE = './public/index.html'
 // const JQUERY_CDN =
 //   '<script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>'
 
@@ -13,36 +13,22 @@ const OUTPUT_FILE = './dist/bundle.html'
 
 let buffer = `<!-- ${TITLE} -->\r\n\r\n`
 
-fs.readFile('./dist/index.html', 'utf8', (err, data) => {
+buffer += fs.readFileSync('./dist/index.html', 'utf8')
+
+buffer = buffer.replace('</html>', '')
+buffer = buffer.replace(/^.*<script.*><\/script>\r\n/m, '')
+buffer = buffer.replace(/^.*<link.*>\r\n/m, '')
+
+buffer += '\r\n<style>\r\n'
+buffer += fs.readFileSync('./dist/styles.css', 'utf8')
+buffer += '\r\n</style>\r\n'
+
+buffer += '\r\n<script>\r\n'
+buffer += fs.readFileSync('./dist/bundle.js', 'utf8')
+buffer += '\r\n</script>\r\n'
+
+buffer += '\r\n</html>\r\n'
+
+fs.writeFileSync(OUTPUT_FILE, buffer, 'utf-8', err => {
   if (err) throw err
-
-  for (let line of data.split('\r\n')) buffer += '  ' + line + '\r\n'
-})
-
-fs.readFile('./dist/styles.css', 'utf8', (err, data) => {
-  if (err) throw err
-
-  buffer += '<style>\r\n'
-
-  for (let line of data.split('\r\n')) buffer += '  ' + line + '\r\n'
-
-  buffer += '</style>\r\n'
-})
-
-fs.readFile('./dist/bundle.js', 'utf8', (err, data) => {
-  if (err) throw err
-
-  buffer += '<script>\r\n'
-
-  buffer += data
-
-  buffer += '</script>\r\n\r\n\r\n'
-})
-
-fs.readFile(OUTPUT_FILE, 'utf8', err => {
-  if (err) throw err
-
-  fs.writeFile(OUTPUT_FILE, buffer, 'utf8', err => {
-    if (err) throw err
-  })
 })
