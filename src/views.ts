@@ -32,8 +32,8 @@ export class AuthForm {
 
   get current_input(): { host: string; password: string } {
     return {
-      host: String(this.host_input.val() || ''),
-      password: String(this.pass_input.val() || '')
+      host: this.current_host_input,
+      password: this.current_pass_input
     }
   }
 
