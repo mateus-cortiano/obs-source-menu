@@ -29,7 +29,7 @@ export function stringify(message: OBSMessage): string {
 
 // ---
 
-const pattern = new RegExp(/(?:(wss?)\:\/\/)?([\d\w\.]*)(?::([\d]*)$)?/)
+const pattern = /(?:(wss?)\:\/\/)?([\d\w\.]*)(?::([\d]*)$)?/
 
 export function parse_host(host: string): string {
   if (host === '') return 'ws://localhost:4444'
