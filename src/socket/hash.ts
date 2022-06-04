@@ -8,7 +8,7 @@ function new_sha() {
   return new jsSHA('SHA-256', 'TEXT', { encoding: 'UTF8' })
 }
 
-export function hasher(
+export default function hasher(
   password: string,
   salt: string,
   challenge: string

@@ -1,11 +1,11 @@
 /* obsws.ts */
 
 'use strict'
+import timers from './timers'
+import events from './events'
+import hasher from './hash'
+import parse from './parse'
 import { OBSMessage, OBSEvents } from './interfaces'
-import { AsyncEventSystem } from './events'
-import { wait_for } from './timers'
-import { hasher } from './hash'
-import { parse, stringify, parse_host } from './parse'
 
 // ---
 
@@ -20,7 +20,7 @@ const DefaultOpts: OBSWebSocketOpts = {
 }
 
 export default class OBSWebSocket {
-  public events: AsyncEventSystem<OBSEvents>
+  public events: events.AsyncEventSystem<OBSEvents>
   readonly host: string
   private password: string
   private connected: Boolean
@@ -32,12 +32,12 @@ export default class OBSWebSocket {
 
   constructor(opts: OBSWebSocketOpts = DefaultOpts) {
     this.opts = opts
-    this.host = parse_host(opts.host)
+    this.host = parse.parse_host(opts.host)
     this.password = opts.password
     this.messageid = 1
     this.connected = false
     this.buffer = new Map()
-    this.events = new AsyncEventSystem()
+    this.events = new events.AsyncEventSystem()
   }
 
   get isconnected(): Boolean {
@@ -64,7 +64,7 @@ export default class OBSWebSocket {
     message.message_id = this.next_uuid()
     message.request_type = request
 
-    this.websocket?.send(stringify(message))
+    this.websocket?.send(parse.stringify(message))
 
     return message.message_id
   }
@@ -72,7 +72,7 @@ export default class OBSWebSocket {
   async call(request: string, payload?: OBSMessage): Promise<OBSMessage> {
     let message_id = await this.send(request, payload)
 
-    await wait_for(() => this.buffer.has(message_id))
+    await timers.wait_for(() => this.buffer.has(message_id))
 
     return this.buffer.get(message_id) as OBSMessage
   }
@@ -82,7 +82,7 @@ export default class OBSWebSocket {
   }
 
   protected async message_handler(event: MessageEvent): Promise<void> {
-    let message: OBSMessage = parse(event)
+    let message: OBSMessage = parse.parse(event)
     let id = message.message_id
     let update = message.update_type as string
 

@@ -1,15 +1,15 @@
 /* index.ts */
 
+import Views from './views'
 import OBSWebSocket from './socket/obsws'
-import { Slider, SceneList, AuthForm } from './views'
-import { wait_for } from './socket/timers'
+import timers from './socket/timers'
 
 // ---
 
 let obsws: OBSWebSocket
-const slider = new Slider()
-const authform = new AuthForm()
-const scenediv = new SceneList()
+const slider = new Views.Slider()
+const authform = new Views.AuthForm()
+const scenediv = new Views.SceneList()
 
 // ---
 
@@ -27,7 +27,7 @@ authform.on_submit(async ev => {
   await obsws.start()
 
   try {
-    await wait_for(() => obsws.isconnected)
+    await timers.wait_for(() => obsws.isconnected)
   } catch (e) {
     if (obsws.error) authform.show_error(obsws.error)
     else authform.show_error('Connection timed out')
